@@ -14,14 +14,6 @@ const client = process.env.CLIENT || "Insignary";
 const author = process.env.FROM_NAME || "Khiem Nguyen";
 const reportTitle = `${company} - ${project} / ${client}`;
 
-async function closeBrowser() {
-  if (_context) {
-    await _context.close().catch(() => {});
-    _context = null;
-    _page = null;
-  }
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function extractLastDateFromMessages(messagesPath = "messages.json") {
@@ -435,15 +427,14 @@ async function main() {
   const prompt = buildPrompt(reportDate, dailyReportText);
   fs.writeFileSync("prompt_sent.txt", prompt, "utf-8");
 
-  const { sendToClaudeAndDownload, closeBrowser } = require("./claude");
+  const { sendToClaudeAndDownload } = require("./claude");
   const reportFilename = `report_${reportDate.replace(/\//g, "-")}.html`;
-  const savedPath = await sendToClaudeAndDownload(prompt, reportFilename);
+  await sendToClaudeAndDownload(prompt, reportFilename);
 
   const { run } = require("./send-mail");
 
   await run(reportDate, reportFilename);
 
-  await closeBrowser();
 }
 
 main().catch(console.error);

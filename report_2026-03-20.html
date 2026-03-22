@@ -236,35 +236,34 @@
             <div class="task-category">Dataset Preparation</div>
             <ul class="sub-list">
               <li>Generate AI Java dataset from scratch — Grok: 1,668 files, Claude: 2,055 files (Done)</li>
-              <li>Investigate new C/C++ datasets and update them in the data loader (On-Going)</li>
-              <li>Add new loader for the MageCode dataset (Done)</li>
-              <li>Crawl CPP GitHub repositories (On-Going)</li>
-              <li>Experiment 3: Generate AI data for short-code AI segments to expand training samples (On-Going)</li>
+              <li>Investigate new C/C++ datasets and update data loader accordingly (On-Going)</li>
+              <li>Add new loader for MageCode dataset (Done)</li>
+              <li>Crawl CPP GitHub repositories for additional training data (On-Going)</li>
             </ul>
           </li>
 
           <li>
             <div class="task-category">Model Training</div>
             <ul class="sub-list">
-              <li>Build checkpoint mechanism for model training (Done)</li>
-              <li>Train model version 3.0 for Java — awaiting dataset updates from Tech Lead to start (On-Going)</li>
+              <li>Build training checkpoint mechanism for model runs (Done)</li>
+              <li>Train model version 3.0 for Java — blocked, awaiting pending dataset updates to begin (On-Going)</li>
             </ul>
           </li>
 
           <li>
-            <div class="task-category">Model Evaluation &amp; Benchmarking</div>
+            <div class="task-category">Model Evaluation</div>
             <ul class="sub-list">
               <li>Benchmark ONNX model performance (On-Going)</li>
-              <li>V2.1 Evaluation: assess overall Human vs. AI-generated samples, add ~1,000 new AI-generated samples, evaluate accuracy at token thresholds ≥300/400/500/600, and produce confusion matrix, F1, Precision, Recall, and Accuracy metrics to determine minimum input token threshold (On-Going)</li>
+              <li>V2.1 Evaluation: assess overall data (Human vs. AI-generated samples), add ~1,000 AI-generated samples, evaluate accuracy at token thresholds (≥300 / 400 / 500 / 600), and produce confusion matrix, F1, Precision, Recall, Accuracy metrics to determine minimum input token threshold (On-Going)</li>
+              <li>Experiment: generate AI short-code samples for supplemental model training (On-Going)</li>
             </ul>
           </li>
 
           <li>
             <div class="task-category">Infrastructure &amp; Server Management</div>
             <ul class="sub-list">
-              <li>Server crashed during training; team instructed to resume interrupted jobs on GPU1 (Done)</li>
-              <li>Implement CPU usage cap at 80% and restrict multiprocessing concurrency to prevent server overload (On-Going)</li>
-              <li>Book new high-VRAM server (128 GB) via company schedule for LLM hosting (On-Going)</li>
+              <li>Handle training server crash; instructed team to resume interrupted runs on GPU1 (Done)</li>
+              <li>Implement 80% CPU usage cap and optimize multiprocessing configurations to prevent future server overload (On-Going)</li>
             </ul>
           </li>
 
@@ -280,23 +279,17 @@
           <span class="status-label">Overall Status:</span>
           <span class="badge badge-yellow">Yellow</span>
         </div>
-        <div class="summary-row">
-          <strong>Summary:</strong>
-          Good progress on Java dataset generation and model training checkpoints; multiple dataset and evaluation tasks continue in parallel. A server crash mid-session caused brief disruption, requiring the team to resume training jobs and highlighting the need for resource guardrails.
-        </div>
-        <div class="summary-row">
-          <strong>Issues:</strong>
-          The training server went down due to CPU/resource overuse; the server is also out of warranty, raising reliability concerns for ongoing and future training runs.
-        </div>
+        <div class="summary-row"><strong>Summary:</strong> The team made solid progress on Java dataset generation, MageCode loader integration, and ONNX benchmarking, but a training server crash mid-day disrupted ongoing runs and highlighted resource management gaps.</div>
+        <div class="summary-row"><strong>Issues:</strong> The training server crashed due to excessive CPU/GPU load from unrestricted multiprocessing; the server is also out of warranty, posing a reliability risk for continued heavy training workloads.</div>
         <div class="summary-row">
           <strong>Actions:</strong>
           <ul class="action-list">
-            <li>Apply CPU cap (80%) and limit multiprocessing concurrency on the training server immediately.</li>
-            <li>Verify all interrupted training jobs have been successfully resumed on GPU1.</li>
-            <li>Coordinate booking of the new 128 GB VRAM server according to the company schedule.</li>
-            <li>Tech Lead to provide updated dataset to unblock Java model v3.0 training.</li>
-            <li>Continue C/C++ dataset investigation, CPP GitHub crawling, and ONNX benchmarking.</li>
-            <li>Progress V2.1 evaluation pipeline (token-threshold accuracy, confusion matrix, F1/Precision/Recall).</li>
+            <li>Enforce 80% CPU usage cap and restrict multiprocessing on the training server immediately.</li>
+            <li>Resume all interrupted training runs on GPU1 (GPU0 is occupied by another project).</li>
+            <li>Complete pending dataset updates to unblock model v3.0 Java training.</li>
+            <li>Continue C/C++ dataset investigation and CPP GitHub repository crawling.</li>
+            <li>Proceed with V2.1 evaluation across all token threshold configurations.</li>
+            <li>Coordinate booking schedule for the new company servers to ensure adequate VRAM allocation.</li>
           </ul>
         </div>
       </div>
@@ -313,7 +306,6 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Fixed: Khiem Nguyen -->
             <tr>
               <td>1</td>
               <td>Khiem Nguyen</td>
@@ -326,7 +318,6 @@
                 </div>
               </td>
             </tr>
-            <!-- Fixed: Gioi Nguyen -->
             <tr>
               <td>2</td>
               <td>Gioi Nguyen</td>
@@ -334,12 +325,11 @@
               <td><span class="billable-yes">Yes</span></td>
               <td>
                 <div class="effort-bar">
-                  <div class="bar-track"><div class="bar-fill" style="width:50%"></div></div>
-                  <span class="bar-label">50%</span>
+                  <div class="bar-track"><div class="bar-fill" style="width:40%"></div></div>
+                  <span class="bar-label">40%</span>
                 </div>
               </td>
             </tr>
-            <!-- Fixed: Toan Huynh -->
             <tr>
               <td>3</td>
               <td>Toan Huynh</td>
@@ -352,7 +342,6 @@
                 </div>
               </td>
             </tr>
-            <!-- Fixed: Long Le -->
             <tr>
               <td>4</td>
               <td>Long Le</td>
@@ -365,12 +354,11 @@
                 </div>
               </td>
             </tr>
-            <!-- Others from log -->
             <tr>
               <td>5</td>
               <td>Viet Le</td>
               <td>AI Developer</td>
-              <td></td>
+              <td><span class="billable-no">No</span></td>
               <td>
                 <div class="effort-bar">
                   <div class="bar-track"><div class="bar-fill" style="width:70%"></div></div>
@@ -382,7 +370,7 @@
               <td>6</td>
               <td>Dung Dao</td>
               <td>Advisor</td>
-              <td></td>
+              <td><span class="billable-no">No</span></td>
               <td>
                 <div class="effort-bar">
                   <div class="bar-track"><div class="bar-fill" style="width:30%"></div></div>
@@ -394,7 +382,7 @@
               <td>7</td>
               <td>Cao Hoai Linh</td>
               <td>AI Developer</td>
-              <td></td>
+              <td><span class="billable-no">No</span></td>
               <td>
                 <div class="effort-bar">
                   <div class="bar-track"><div class="bar-fill" style="width:60%"></div></div>
@@ -406,11 +394,11 @@
               <td>8</td>
               <td>Tuan Tran Anh</td>
               <td>AI Developer</td>
-              <td></td>
+              <td><span class="billable-no">No</span></td>
               <td>
                 <div class="effort-bar">
-                  <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div>
-                  <span class="bar-label">55%</span>
+                  <div class="bar-track"><div class="bar-fill" style="width:50%"></div></div>
+                  <span class="bar-label">50%</span>
                 </div>
               </td>
             </tr>
@@ -418,7 +406,7 @@
               <td>9</td>
               <td>Duy Nguyen</td>
               <td>AI Developer</td>
-              <td></td>
+              <td><span class="billable-no">No</span></td>
               <td>
                 <div class="effort-bar">
                   <div class="bar-track"><div class="bar-fill" style="width:50%"></div></div>

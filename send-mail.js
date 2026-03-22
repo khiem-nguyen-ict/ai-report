@@ -1,12 +1,12 @@
 /**
  * send-mail.js
- * Gửi email qua Zimbra Classic Webmail bằng Playwright.
- * - Lần đầu: bạn tự đăng nhập, session được lưu lại.
- * - Lần sau: tự động dùng session cũ, không cần đăng nhập lại.
+ * Send email via Zimbra Classic Webmail using Playwright.
+ * - First time: Manual login required, session will be saved.
+ * - Subsequent times: Automatically uses saved session, no re-login needed.
  *
- * Cài đặt:
- *   npm install playwright dotenv
- *   npx playwright install chromium
+ * Setup:
+ * npm install playwright dotenv
+ * npx playwright install chromium
  */
 
 require("dotenv").config();
@@ -16,17 +16,17 @@ const { chromium } = require("playwright");
 const { execSync } = require("child_process");
 
 // ─────────────────────────────────────────────
-//  CẤU HÌNH
+//  CONFIGURATION
 // ─────────────────────────────────────────────
 const CONFIG = {
   zimbraUrl: process.env.ZIMBRA_URL || "https://webmail.tma.com.vn",
   fromName: process.env.FROM_NAME || "Khiem Nguyen Thanh",
-  sessionDir: path.resolve(__dirname, ".zimbra-session"), // lưu cookie/session
+  sessionDir: path.resolve(__dirname, ".zimbra-session"), // store cookies/session
 };
 
 // ─────────────────────────────────────────────
-//  DANH SÁCH NGƯỜI NHẬN — đọc từ .env
-//  Định dạng: RECIPIENTS=Name1:email1,Name2:email2
+//  RECIPIENT LIST — read from .env
+//  Format: RECIPIENTS=Name1:email1,Name2:email2
 // ─────────────────────────────────────────────
 const RECIPIENT_LIST = (process.env.RECIPIENTS || "")
   .split(",")
@@ -57,7 +57,7 @@ function loadHtmlBody(target) {
 }
 
 // ─────────────────────────────────────────────
-//  KIỂM TRA ĐÃ ĐĂNG NHẬP CHƯA
+//  CHECK IF LOGGED IN
 // ─────────────────────────────────────────────
 async function isLoggedIn(page) {
   try {
@@ -109,7 +109,7 @@ async function waitForLogin(page) {
 }
 
 // ─────────────────────────────────────────────
-//  COMPOSE VÀ GỬI EMAIL (Zimbra Classic) — fallback
+//  COMPOSE AND SEND EMAIL (Zimbra Classic) — fallback
 // ─────────────────────────────────────────────
 async function composeAndSend(
   page,
@@ -118,8 +118,8 @@ async function composeAndSend(
   date,
   resolvedHtmlFilePath,
 ) {
-  // Bấm nút "New Message"
-  // Zimbra Classic dùng nhiều dạng selector khác nhau tuỳ version
+  // Click "New Message" button
+  // Zimbra Classic uses various selectors depending on version
   const newMsgSelectors = [
     "div[id$='__NEW_MENU']",
     "td[id$='__COMPOSE']",
@@ -128,7 +128,7 @@ async function composeAndSend(
     "td.ZToolbarButton:has-text('New Message')",
   ];
 
-  const EMAIL_SUBJECT = `[${process.env.COMPANY}][${process.env.CLIENT}] ${process.env.PROJECT} - Daily Report on ${date}`; // (Week #14, Sprint #6)`;
+  const EMAIL_SUBJECT = `[${process.env.COMPANY}][${process.env.CLIENT}] ${process.env.PROJECT} - Daily Report on ${date}`;
 
   let clicked = false;
   for (const sel of newMsgSelectors) {
@@ -136,15 +136,15 @@ async function composeAndSend(
     if ((await btn.count()) > 0) {
       await btn.click();
       clicked = true;
-      console.log(`  🖱️  Bấm Compose (selector: ${sel})`);
+      console.log(`  🖱️  Clicked Compose (selector: ${sel})`);
       break;
     }
   }
-  if (!clicked) throw new Error("Không tìm thấy nút New Message/Compose");
+  if (!clicked) throw new Error("Could not find New Message/Compose button");
 
   await page.waitForTimeout(2000);
 
-  // Điền To
+  // Fill To field
   const toSelectors = [
     "input[id^='zv__COMPOSE'][id$='_to_control']",
     "input[class*='addrInput'][aria-label*='To']",
@@ -162,14 +162,14 @@ async function composeAndSend(
       await field.fill(strRep);
       await field.press("Tab");
       toFilled = true;
-      console.log(`  ✍️  Điền To (selector: ${sel})`);
+      console.log(`  ✍️  Filled To (selector: ${sel})`);
       break;
     }
   }
-  if (!toFilled) throw new Error("Không tìm thấy ô nhập địa chỉ To");
+  if (!toFilled) throw new Error("Could not find To input field");
   await page.waitForTimeout(500);
 
-  // Điền Subject
+  // Fill Subject field
   const subjectSelectors = [
     "input[id^='zv__COMPOSE'][id$='_subject']",
     "input[id*='_subject']",
@@ -182,35 +182,34 @@ async function composeAndSend(
       await field.click();
       await field.fill(EMAIL_SUBJECT);
       subjectFilled = true;
-      console.log(`  ✍️  Điền Subject (selector: ${sel})`);
+      console.log(`  ✍️  Filled Subject (selector: ${sel})`);
       break;
     }
   }
-  if (!subjectFilled) throw new Error("Không tìm thấy ô Subject");
+  if (!subjectFilled) throw new Error("Could not find Subject field");
   await page.waitForTimeout(500);
 
-  // Mở file HTML trong tab mới → Cmd+A → Cmd+C → paste vào editor
-  // Đúng y hệt người dùng mở file, select all, copy, paste
+  // Open HTML file in new tab → Cmd+A → Cmd+C → paste into editor
   const htmlFileUrl = `file://${resolvedHtmlFilePath}`;
 
-  // Bước 1: mở file HTML trong tab mới (tab hiện ra để copy đúng)
+  // Step 1: Open HTML file in new tab
   const htmlPage = await browser.newPage();
   await htmlPage.bringToFront();
   await htmlPage.goto(htmlFileUrl, { waitUntil: "networkidle" });
   await htmlPage.waitForTimeout(800);
-  console.log("  📄 Đã mở file HTML trong tab mới");
+  console.log("  📄 Opened HTML file in a new tab");
 
-  // Bước 2: Cmd+A (chọn tất cả) rồi Cmd+C (copy)
+  // Step 2: Cmd+A (Select All) then Cmd+C (Copy)
   await htmlPage.keyboard.press("Meta+a");
   await htmlPage.waitForTimeout(300);
   await htmlPage.keyboard.press("Meta+c");
   await htmlPage.waitForTimeout(300);
-  console.log("  📋 Đã Cmd+A + Cmd+C nội dung file HTML");
+  console.log("  📋 Executed Cmd+A + Cmd+C on HTML content");
 
-  // Bước 3: đóng tab HTML
+  // Step 3: Close HTML tab
   await htmlPage.close();
 
-  // Bước 4: click vào editor iframe rồi Cmd+A + Cmd+V
+  // Step 4: Click into editor iframe then Cmd+A + Cmd+V
   const editorFrame = page
     .frameLocator("iframe[id^='ZmHtmlEditor'], iframe[class*='ZmHtmlEditor']")
     .first();
@@ -219,20 +218,19 @@ async function composeAndSend(
   if ((await editorBody.count()) > 0) {
     await editorBody.click();
     await page.waitForTimeout(300);
-    await editorBody.press("Meta+a"); // xóa nội dung cũ
+    await editorBody.press("Meta+a"); // Clear old content
     await page.waitForTimeout(200);
-    await editorBody.press("Meta+v"); // paste từ clipboard
+    await editorBody.press("Meta+v"); // Paste from clipboard
     await page.waitForTimeout(800);
-    console.log("  ✍️  Đã paste vào Zimbra editor");
+    console.log("  ✍️  Pasted content into Zimbra editor");
   } else {
-    throw new Error("Không tìm thấy email body editor (iframe)");
+    throw new Error("Could not find email body editor (iframe)");
   }
   await page.waitForTimeout(500);
 
-  // Bấm Send — tìm trong compose toolbar, tránh nhầm với email list
-  // Từ screenshot: nút Send nằm trong toolbar của compose window
+  // Click Send button
   const sendSelectors = [
-    "td[id^='zb__COMPOSE'][id$='__SEND_MENU_title']", // Zimbra Classic: td title
+    "td[id^='zb__COMPOSE'][id$='__SEND_MENU_title']", 
     "td[id$='__SEND_MENU_title']",
     "div[id$='__SEND_MENU']",
     "td[id$='__SEND_MENU']",
@@ -246,7 +244,7 @@ async function composeAndSend(
       if ((await btn.count()) > 0 && (await btn.isVisible())) {
         await btn.click({ timeout: 5000 });
         sent = true;
-        console.log(`  🚀 Bấm Send (selector: ${sel})`);
+        console.log(`  🚀 Clicked Send (selector: ${sel})`);
         break;
       }
     } catch {
@@ -254,7 +252,7 @@ async function composeAndSend(
     }
   }
   if (!sent) {
-    // Log tất cả buttons đang visible trong compose area để debug
+    // Log visible buttons in compose area for debugging
     const allBtns = await page
       .locator("button, div[role=button], td[role=button]")
       .all();
@@ -265,11 +263,11 @@ async function composeAndSend(
         if (txt) visible.push(txt);
       }
     }
-    console.log("  🔍 Buttons đang visible:", visible.slice(0, 15));
-    throw new Error("Không tìm thấy nút Send");
+    console.log("  🔍 Visible buttons:", visible.slice(0, 15));
+    throw new Error("Could not find Send button");
   }
 
-  // Chờ compose window đóng
+  // Wait for compose window to close
   await page.waitForTimeout(3000);
 }
 
@@ -285,11 +283,11 @@ async function run(date, reportFile) {
     htmlBody = result.html;
     resolvedFilePath = result.filePath;
   } catch (err) {
-    console.error("❌ Lỗi đọc file HTML:", err.message);
+    console.error("❌ Error reading HTML file:", err.message);
     process.exit(1);
   }
 
-  // Dùng persistent context để lưu session
+  // Use persistent context to save session
   const browser = await chromium.launchPersistentContext(CONFIG.sessionDir, {
     headless: false,
     slowMo: 80,
@@ -304,25 +302,25 @@ async function run(date, reportFile) {
   const page = browser.pages()[0] || (await browser.newPage());
 
   try {
-    // Thử vào thẳng webmail
-    console.log(`🌐 Mở: ${CONFIG.zimbraUrl}`);
+    // Navigate to webmail
+    console.log(`🌐 Opening: ${CONFIG.zimbraUrl}`);
     await page.goto(CONFIG.zimbraUrl, {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
     await page.waitForTimeout(2000);
 
-    // Kiểm tra đã login chưa
+    // Check login status
     const loggedIn = await isLoggedIn(page);
     if (!loggedIn) {
       await waitForLogin(page);
     } else {
-      console.log("✅ Dùng session cũ — không cần đăng nhập lại.\n");
+      console.log("✅ Using existing session — no login required.\n");
     }
 
-    // Gửi email qua Playwright UI
+    // Start sending email
     console.log(
-      `\n📧 Bắt đầu gửi đến ${RECIPIENT_LIST.length} người nhận...\n`,
+      `\n📧 Starting to send to ${RECIPIENT_LIST.length} recipients...\n`,
     );
 
     try {
@@ -333,15 +331,14 @@ async function run(date, reportFile) {
         date,
         resolvedFilePath,
       );
-      console.log(`  ✅ Gửi mail thành công!\n`);
+      console.log(`  ✅ Email sent successfully!\n`);
     } catch (err) {
-      console.error(`  ❌ Gởi mail lỗi: ${err.message}\n`);
-      results.failed.push({ email: recipient.email, error: err.message });
+      console.error(`  ❌ Failed to send email: ${err.message}\n`);
       await page.screenshot({ path: "error-screenshot.png" });
-      console.log("  📸 Đã lưu screenshot: error-screenshot.png");
+      console.log("  📸 Screenshot saved: error-screenshot.png");
     }
   } finally {
-    // await browser.close(); // session đã được lưu vào .zimbra-session/
+    await browser.close(); 
   }
 }
 

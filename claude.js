@@ -4,14 +4,14 @@ const path = require("path");
 const USER_DATA_DIR = "./user-data";
 
 // ── Timeout / polling config ───────────────────────────────────────────────
-const STREAMING_TIMEOUT_MS   = 5 * 60_000;  // 5 minutes max wait for generation
-const POLL_INTERVAL_MS       = 15_000;       // check every 15 seconds
-const EDITOR_READY_TIMEOUT   = 0;            // no timeout — wait as long as needed for login
-const FIRST_RESPONSE_TIMEOUT = 90_000;       // 90s for the first response container to appear
-const DOWNLOAD_TIMEOUT       = 60_000;       // 60s to receive the download after clicking
+const STREAMING_TIMEOUT_MS = 5 * 60_000; // 5 minutes max wait for generation
+const POLL_INTERVAL_MS = 15_000; // check every 15 seconds
+const EDITOR_READY_TIMEOUT = 0; // no timeout — wait as long as needed for login
+const FIRST_RESPONSE_TIMEOUT = 90_000; // 90s for the first response container to appear
+const DOWNLOAD_TIMEOUT = 60_000; // 60s to receive the download after clicking
 
 let _context = null;
-let _page    = null;
+let _page = null;
 
 // ── Browser / page management ─────────────────────────────────────────────
 
@@ -28,20 +28,24 @@ async function getPage() {
   _page = await _context.newPage();
   await _page.goto("https://claude.ai", { waitUntil: "domcontentloaded" });
 
-  console.log("⚠️  If you see a Cloudflare or login page, please complete it manually (only once).");
+  console.log(
+    "⚠️  If you see a Cloudflare or login page, please complete it manually (only once).",
+  );
   await waitForClaudeReady(_page);
   return _page;
 }
 
 async function waitForClaudeReady(page) {
-  await page.waitForSelector('div[contenteditable="true"]', { timeout: EDITOR_READY_TIMEOUT });
+  await page.waitForSelector('div[contenteditable="true"]', {
+    timeout: EDITOR_READY_TIMEOUT,
+  });
   await page.waitForTimeout(1000);
 }
 
 async function waitForStreamingComplete(page) {
   const timeoutMs = STREAMING_TIMEOUT_MS;
 
-  const start    = Date.now();
+  const start = Date.now();
   const deadline = start + timeoutMs;
 
   while (Date.now() < deadline) {
@@ -49,17 +53,20 @@ async function waitForStreamingComplete(page) {
 
     const elapsed = Math.round((Date.now() - start) / 1000);
 
-    const isDone = await page.evaluate(() => {
-      if (document.querySelectorAll('[data-is-streaming="true"]').length > 0) return false;
+    const isDone = await page
+      .evaluate(() => {
+        if (document.querySelectorAll('[data-is-streaming="true"]').length > 0)
+          return false;
 
-      const stopBtn =
-        document.querySelector('[aria-label*="Stop"]')            ||
-        document.querySelector('[data-testid="stop-button"]')     ||
-        document.querySelector('button[aria-label="Stop response"]');
-      if (stopBtn && stopBtn.offsetParent !== null) return false;
+        const stopBtn =
+          document.querySelector('[aria-label*="Stop"]') ||
+          document.querySelector('[data-testid="stop-button"]') ||
+          document.querySelector('button[aria-label="Stop response"]');
+        if (stopBtn && stopBtn.offsetParent !== null) return false;
 
-      return true;
-    }).catch(() => false);
+        return true;
+      })
+      .catch(() => false);
 
     if (isDone) {
       await page.waitForTimeout(2000);
@@ -76,7 +83,7 @@ async function findDownloadButton(page, timeout = 20_000) {
   while (Date.now() < deadline) {
     try {
       const handle = await page.evaluateHandle(() =>
-        document.querySelector('button[aria-label="Download"]')
+        document.querySelector('button[aria-label="Download"]'),
       );
 
       const element = handle.asElement();
@@ -117,7 +124,9 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
   console.log("📤 Prompt submitted.");
 
   console.log("⏳ Waiting for response to start…");
-  await page.waitForSelector('div[class*="contents"]', { timeout: FIRST_RESPONSE_TIMEOUT });
+  await page.waitForSelector('div[class*="contents"]', {
+    timeout: FIRST_RESPONSE_TIMEOUT,
+  });
   console.log("   Response started.");
 
   await waitForStreamingComplete(page);
@@ -125,26 +134,30 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
   // ── Find and click the artifact Download button ───────────────────────
   console.log("🔍 Looking for Download button…");
 
-   // DEBUG: Check if button exists in DOM
-   const exists = await page.evaluate(() =>
-     !!document.querySelector('button[aria-label="Download"]')
-   );
+  // DEBUG: Check if button exists in DOM
+  const exists = await page.evaluate(
+    () => !!document.querySelector('button[aria-label="Download"]'),
+  );
 
   let downloadButton = null;
   try {
     downloadButton = await findDownloadButton(page, 20_000);
     if (!downloadButton) throw new Error("Button not found");
   } catch {
-    await page.screenshot({ path: "debug-no-download-btn.png", fullPage: false }).catch(() => {});
+    await page
+      .screenshot({ path: "debug-no-download-btn.png", fullPage: false })
+      .catch(() => {});
     throw new Error(
       "❌ Could not find the artifact Download button after generation completed.\n" +
-      "   Screenshot saved to debug-no-download-btn.png\n" +
-      "   Make sure the prompt instructs Claude to create an HTML artifact."
+        "   Screenshot saved to debug-no-download-btn.png\n" +
+        "   Make sure the prompt instructs Claude to create an HTML artifact.",
     );
   }
 
   await downloadButton.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "debug-before-download.png", fullPage: false }).catch(() => {});
+  await page
+    .screenshot({ path: "debug-before-download.png", fullPage: false })
+    .catch(() => {});
   console.log("🖱️  Found Download button — clicking…");
 
   const [download] = await Promise.all([
@@ -168,7 +181,17 @@ if (require.main === module) {
     "Create a simple HTML hello world page as an artifact.";
 
   (async () => {
-    const filePath = await sendToClaudeAndDownload(prompt, "output.html");
-    console.log(`\n📁 Saved to: ${filePath}`);
-  })().catch(console.error);
+    try {
+      const filePath = await sendToClaudeAndDownload(prompt, "output.html");
+      console.log(`\n📁 Saved to: ${filePath}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      // ── Close the browser/context before exiting ────────────────────────
+      if (_context) {
+        console.log("Cleanup: Closing browser...");
+        await _context.close();
+      }
+    }
+  })();
 }
