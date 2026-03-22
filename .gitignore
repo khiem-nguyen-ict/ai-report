@@ -1,0 +1,6 @@
+user-data/
+node_modules/
+teams-profile/
+.zimbra-session
+.env
+.DS_Store

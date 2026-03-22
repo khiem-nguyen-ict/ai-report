@@ -1,0 +1,9 @@
+Dataset Preparation
+Training Pipeline
+Baseline Detection / Evaluation
+Others
+Overall Status: 🟠 Orange
+Summary: The team made solid progress today — AI Java datasets were successfully generated, C/C++ dataset loaders were updated, and model training checkpoints were built. However, model v3.0 training for Java remains blocked pending dataset updates, and server instability due to excessive CPU/GPU usage was reported.
+Issues: The shared training server crashed due to resource overconsumption (multiprocessing without limits). The server is out of warranty, making repeated crashes a risk to continuity.
+Actions:
+Effort Rationale:
