@@ -5,9 +5,9 @@ const fs = require("fs");
 
 const PROFILE_DIR = "./teams-profile";
 const GROUP_NAME =  process.env.GROUP_NAME || "Mini Insignary Internal";
-const TIMEOUT = 30_000; // ⏱️ 30s cho từng thao tác click / list
-const SHELL_TIMEOUT = 120_000; // Teams SPA hay load lâu / nhiều kết nối mạng
-/** Số lần cuộn lên tối đa để lazy-load thêm tin cùng ngày (đủ cho ~1 ngày chat). */
+const TIMEOUT = 30_000; // ⏱️ 30s for each click/list action
+const SHELL_TIMEOUT = 120_000; // Teams SPA loads slowly / many network connections
+/** Maximum number of scroll ups to lazy-load more messages for the same day (enough for ~1 day of chat). */
 const MAX_CHAT_SCROLL_UP = process.env.MAX_CHAT_SCROLL_UP || 5;
 
 function escapeRegex(s) {
@@ -129,15 +129,15 @@ async function run() {
     .isVisible()
     .catch(() => false);
 
-  if (needLogin) {
-    console.log("⚠️  Lần đầu cần login thủ công trong browser...");
-    console.log("👉 Sau khi login xong, nhấn Enter ở đây để tiếp tục.");
-    // Không có timeout — chờ bạn nhấn Enter bao lâu cũng được
-    await new Promise((r) => process.stdin.once("data", r));
-    console.log("✅ Đã lưu session! Từ lần sau sẽ tự động login.");
-  } else {
-    console.log("✅ Đã login sẵn, không cần login lại!");
-  }
+   if (needLogin) {
+     console.log("⚠️  First-time login required in browser...");
+     console.log("👉 After logging in, press Enter here to continue.");
+     // No timeout - wait for Enter press as long as needed
+     await new Promise((r) => process.stdin.once("data", r));
+     console.log("✅ Session saved! From next time, login will be automatic.");
+   } else {
+     console.log("✅ Already logged in, no need to login again!");
+   }
 
   try {
     await waitForTeamsShell(page);

@@ -422,33 +422,22 @@ ${dailyReportText}`;
 // ── Main pipeline ─────────────────────────────────────────────────────────
 
 async function main() {
-  console.log("🔵 Step 1: Scraping MS Teams messages…");
   const { run: runTeams } = require("./ms-team");
   await runTeams();
 
-  console.log("\n🔵 Step 2: Extracting report date…");
   const reportDate = extractLastDateFromMessages("messages.json");
-  console.log(`📅 Report date: ${reportDate}`);
 
   const dailyReportText = fs.readFileSync("messages.txt", "utf-8");
   if (!dailyReportText.trim()) {
-    console.error("❌ messages.txt is empty — nothing to send to Claude.");
     process.exit(1);
   }
 
-  console.log("\n🔵 Step 3: Building prompt…");
   const prompt = buildPrompt(reportDate, dailyReportText);
   fs.writeFileSync("prompt_sent.txt", prompt, "utf-8");
-  console.log("📝 Prompt saved to prompt_sent.txt");
 
-  console.log(
-    "\n🔵 Step 4: Sending to Claude and waiting for artifact download…",
-  );
   const { sendToClaudeAndDownload, closeBrowser } = require("./claude");
   const reportFilename = `report_${reportDate.replace(/\//g, "-")}.html`;
   const savedPath = await sendToClaudeAndDownload(prompt, reportFilename);
-
-  console.log(`\n✅ Done! Report saved to: ${savedPath}`);
 
   const { run } = require("./send-mail");
 

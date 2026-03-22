@@ -34,16 +34,12 @@ async function getPage() {
 }
 
 async function waitForClaudeReady(page) {
-  console.log("⏳ Waiting for Claude editor to be ready…");
   await page.waitForSelector('div[contenteditable="true"]', { timeout: EDITOR_READY_TIMEOUT });
   await page.waitForTimeout(1000);
-  console.log("✅ Claude editor is ready!");
 }
 
 async function waitForStreamingComplete(page) {
   const timeoutMs = STREAMING_TIMEOUT_MS;
-  console.log("⏳ Waiting for Claude to finish generating…");
-  console.log(`   (checking every ${POLL_INTERVAL_MS / 1000}s, max ${timeoutMs / 60_000} min)`);
 
   const start    = Date.now();
   const deadline = start + timeoutMs;
@@ -66,16 +62,10 @@ async function waitForStreamingComplete(page) {
     }).catch(() => false);
 
     if (isDone) {
-      console.log(`✅ Claude finished after ${elapsed}s.`);
       await page.waitForTimeout(2000);
       return;
     }
-
-    console.log(`   ⏳ Still generating… (${elapsed}s elapsed, next check in ${POLL_INTERVAL_MS / 1000}s)`);
   }
-
-  const totalMin = (STREAMING_TIMEOUT_MS / 60_000).toFixed(1);
-  console.warn(`⚠️  Max wait of ${totalMin} min reached. Attempting to proceed anyway…`);
 }
 
 // ── Find Download button ──────────────────────────────────────────────────
@@ -135,11 +125,10 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
   // ── Find and click the artifact Download button ───────────────────────
   console.log("🔍 Looking for Download button…");
 
-  // DEBUG: xác nhận button có trong DOM không
-  const exists = await page.evaluate(() =>
-    !!document.querySelector('button[aria-label="Download"]')
-  );
-  console.log(`   Button exists in DOM: ${exists}`);
+   // DEBUG: Check if button exists in DOM
+   const exists = await page.evaluate(() =>
+     !!document.querySelector('button[aria-label="Download"]')
+   );
 
   let downloadButton = null;
   try {

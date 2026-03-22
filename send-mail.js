@@ -38,22 +38,21 @@ const RECIPIENT_LIST = (process.env.RECIPIENTS || "")
   });
 
 if (RECIPIENT_LIST.length === 0) {
-  console.error("❌ Chưa cấu hình RECIPIENTS trong .env");
+  console.error("❌ RECIPIENTS not configured in .env");
   console.error(
-    "   Ví dụ: RECIPIENTS=Nguyen Van A:a@tma.com.vn,Tran Thi B:b@tma.com.vn",
+    "   Example: RECIPIENTS=Nguyen Van A:a@tma.com.vn,Tran Thi B:b@tma.com.vn",
   );
   process.exit(1);
 }
 
 function loadHtmlBody(target) {
   if (!target) {
-    throw new Error("Chưa truyền đường dẫn file HTML.");
+    throw new Error("HTML file path not provided.");
   }
   if (!fs.existsSync(target)) {
-    throw new Error(`Không tìm thấy file: ${target}`);
+    throw new Error(`File not found: ${target}`);
   }
   const html = fs.readFileSync(target, "utf-8");
-  console.log(`📄 Đã đọc file HTML: ${target} (${html.length} ký tự)`);
   return { html, filePath: path.resolve(target) };
 }
 
@@ -81,13 +80,10 @@ async function isLoggedIn(page) {
 }
 
 // ─────────────────────────────────────────────
-//  CHỜ ĐĂNG NHẬP (hiện URL login, chờ bạn làm)
+//  WAIT FOR LOGIN (show login URL, wait for user action)
 // ─────────────────────────────────────────────
 async function waitForLogin(page) {
-  console.log("⏳ Vui lòng đăng nhập vào Zimbra trong cửa sổ vừa mở...");
-  console.log("   (kể cả nhập 2FA nếu có)\n");
-
-  // Chờ URL đổi khỏi trang login
+  // Wait for URL to change from login page
   await page.waitForFunction(
     () =>
       !window.location.href.includes("loginOp") &&
@@ -95,13 +91,12 @@ async function waitForLogin(page) {
       document.title !== "Zimbra Web Client Sign In",
     { timeout: 180000, polling: 1000 },
   );
-  console.log("🔄 Đã qua trang login, đang chờ Zimbra load xong...");
-  // Chờ "Loading..." biến mất và toolbar xuất hiện
+  // Wait for "Loading..." to disappear and toolbar to appear
   await page.waitForFunction(
     () => {
       const loading = document.querySelector(".ZLoadingMsg, #skin_loading_div");
-      if (loading && loading.offsetParent !== null) return false; // vẫn đang load
-      // Kiểm tra toolbar hoặc nút Compose đã xuất hiện
+      if (loading && loading.offsetParent !== null) return false; // still loading
+      // Check if toolbar or Compose button has appeared
       return (
         document.querySelector(
           "div[id^='zb__App'], #ztb__App, div.ZmAppToolBar",
@@ -111,7 +106,6 @@ async function waitForLogin(page) {
     { timeout: 60000, polling: 500 },
   );
   await page.waitForTimeout(1500);
-  console.log("✅ Đăng nhập thành công! Session đã được lưu lại.\n");
 }
 
 // ─────────────────────────────────────────────
