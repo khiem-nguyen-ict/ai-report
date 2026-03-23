@@ -237,9 +237,6 @@ async function composeAndSend(
     await htmlPage.waitForTimeout(300);
     console.log("  📋 Executed Cmd+A + Cmd+C on HTML content");
 
-    // Step 3: Close HTML tab
-    await htmlPage.close();
-
     // Step 4: Click into editor iframe then Cmd+A + Cmd+V
     const editorFrame = page
         .frameLocator("iframe[id^='ZmHtmlEditor'], iframe[class*='ZmHtmlEditor']")
@@ -258,6 +255,9 @@ async function composeAndSend(
         throw new Error("Could not find email body editor (iframe)");
     }
     await page.waitForTimeout(500);
+
+    // Step 3: Close HTML tab
+    await htmlPage.close();
 
     // Click Send button
     const sendSelectors = [
@@ -327,6 +327,9 @@ async function run(date, reportFile) {
         permissions: ["clipboard-read", "clipboard-write"],
         args: [
             "--unsafely-treat-insecure-origin-as-secure=https://webmail.tma.com.vn",
+            // Required for navigator.clipboard.write() to work in automated contexts
+            "--enable-features=ClipboardAPI",
+            "--enable-blink-features=ClipboardAPI",
         ],
     });
 
@@ -340,6 +343,14 @@ async function run(date, reportFile) {
             timeout: 30000,
         });
         await page.waitForTimeout(2000);
+
+        // Explicitly grant clipboard permissions for this origin.
+        // The permissions passed at launchPersistentContext() are global defaults,
+        // but some Chromium builds require a per-origin grant after navigation.
+        await browser.grantPermissions(
+            ["clipboard-read", "clipboard-write"],
+            { origin: CONFIG.zimbraUrl },
+        );
 
         // Check login status
         const loggedIn = await isLoggedIn(page);
