@@ -1,53 +1,15 @@
-You are a professional Project Coordinator working for TMA Solutions.
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
-Below is the raw Daily Report log from a development team's chat.
+const company = process.env.COMPANY || "TMA Solutions";
+const project = process.env.PROJECT || "AI Code Scanner";
+const client = process.env.CLIENT || "Insignary";
+const author = process.env.FROM_NAME || "Khiem Nguyen";
+const reportTitle = `${company} - ${project} / ${client}`;
 
----
-
-YOUR TASKS:
-
-STEP 1 — Derive 3 to 5 task categories dynamically from the log content.
-Do NOT use a fixed list. Read the log, identify real categories of work (e.g. "Training Pipeline", "Dataset Preparation", "Code Quality", "Others").
-Use short, concise category headers.
-
-STEP 2 — Organize tasks under those categories:
-- Single continuous numbered list (1, 2, 3…) across all categories — never restart.
-- 4 spaces indentation for all sub-items.
-- Mark each task as (On-Going) or (Done).
-- Keep any Expectation Date mentioned.
-- Remove all names / assignee mentions.
-- Skip categories with no tasks.
-- Ignore casual chat, only parse work content.
-- English only.
-
-STEP 3 — Short summary section:
-1. Overall Status: Green / Yellow / Orange / Red. (Green = OK, Yellow = concern or warning, Orange = important warning, Red = critical). Use Yello/Red/Orange only for blockers impacting progress.
-2. Summary: 1–2 sentences about the day.
-3. Issues: "None" or 1–2 sentences.
-4. Actions: Bullet points for next steps.
-
-STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0–100%).
-- Fixed people at top (Billable = Yes):
-    • Khiem Nguyen — Project Manager, Effort: always 30%
-    • Gioi Nguyen   — Technical Leader, Effort: max 50%
-    • Toan Huynh    — AI Developer, Effort: always 0% (Avatar)
-    • Long Le       — derive Role from log, Billable: Yes
-- All other people found in the log come after, Billable is No, and leave this column value empty. If "Dung Dao" is existed, his Role is always "Advisor"
-- Effort: calculated from chat volume, proactiveness, and task complexity visible in the log.
-- Do NOT include any Effort Rationale or explanation column.
-
----
-
-OUTPUT FORMAT — CRITICAL:
-Create a Claude Artifact of type HTML.
-The artifact must be a COMPLETE, SELF-CONTAINED HTML file.
-
-BRANDING IS FIXED — do NOT change any colors, fonts, or layout structure from the spec below.
-This design must be consistent across every single report generated. Never deviate.
-
-Use EXACTLY this CSS (paste it verbatim inside a <style> tag):
-```
-/* ── TMA Solutions brand tokens ── */
+// ── TMA Solutions brand design spec (fixed — never changes) ───────────────
+const TMA_BRAND_CSS = `
+  /* ── TMA Solutions brand tokens ── */
   :root {
     --company-branding-color:      #279DD8;
     --highlight-color:    #FFCC16;
@@ -254,17 +216,72 @@ Use EXACTLY this CSS (paste it verbatim inside a <style> tag):
     margin-top: 8px;
   }
   .report-footer span { color: var(--company-branding-color); font-weight: 700; }
-```
+`.trim();
+
+// ── Prompt builder ────────────────────────────────────────────────────────
+
+function buildPrompt(reportDate, dailyReportText) {
+  return `You are a professional Project Coordinator working for ${company}.
+
+Below is the raw Daily Report log from a development team's chat.
+
+---
+
+YOUR TASKS:
+
+STEP 1 — Derive 3 to 5 task categories dynamically from the log content.
+Do NOT use a fixed list. Read the log, identify real categories of work (e.g. "Training Pipeline", "Dataset Preparation", "Code Quality", "Others").
+Use short, concise category headers.
+
+STEP 2 — Organize tasks under those categories:
+- Single continuous numbered list (1, 2, 3…) across all categories — never restart.
+- 4 spaces indentation for all sub-items.
+- Mark each task as (On-Going) or (Done).
+- Keep any Expectation Date mentioned.
+- Remove all names / assignee mentions.
+- Skip categories with no tasks.
+- Ignore casual chat, only parse work content.
+- English only.
+
+STEP 3 — Short summary section:
+1. Overall Status: Green / Yellow / Orange / Red. (Green = OK, Yellow = concern or warning, Orange = important warning, Red = critical). Use Yello/Red/Orange only for blockers impacting progress.
+2. Summary: 1–2 sentences about the day.
+3. Issues: "None" or 1–2 sentences.
+4. Actions: Bullet points for next steps.
+
+STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0–100%).
+- Fixed people at top (Billable = Yes):
+    • Khiem Nguyen — Project Manager, Effort: always 30%
+    • Gioi Nguyen   — Technical Leader, Effort: max 50%
+    • Toan Huynh    — AI Developer, Effort: always 0% (Avatar)
+    • Long Le       — derive Role from log, Billable: Yes
+- All other people found in the log come after, Billable is No, and leave this column value empty. If "Dung Dao" is existed, his Role is always "Advisor"
+- Effort: calculated from chat volume, proactiveness, and task complexity visible in the log.
+- Do NOT include any Effort Rationale or explanation column.
+
+---
+
+OUTPUT FORMAT — CRITICAL:
+Create a Claude Artifact of type HTML.
+The artifact must be a COMPLETE, SELF-CONTAINED HTML file.
+
+BRANDING IS FIXED — do NOT change any colors, fonts, or layout structure from the spec below.
+This design must be consistent across every single report generated. Never deviate.
+
+Use EXACTLY this CSS (paste it verbatim inside a <style> tag):
+\`\`\`
+${TMA_BRAND_CSS}
+\`\`\`
 
 Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
 
-```html
+\`\`\`html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Summary - 2026/03/20</title>
+  <title>Daily Summary - ${reportDate}</title>
   <style>
     /* PASTE THE FULL CSS ABOVE HERE — DO NOT MODIFY */
   </style>
@@ -274,8 +291,8 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
   <!-- HEADER -->
   <div class="report-header">
     <div class="title-block">
-      <h1>Daily Summary - 2026/03/20</h1>
-      <p>TMA Solutions - AI Code Scanner / Insignary</p>
+      <h1>Daily Summary - ${reportDate}</h1>
+      <p>${reportTitle}</p>
     </div>
   </div>
 
@@ -351,12 +368,12 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
 
   <!-- FOOTER -->
   <div class="report-footer">
-    <span>TMA Solutions</span> - Daily Report by <span>Khiem Nguyen Thanh</span> - 2026/03/20
+    <span>${company}</span> - Daily Report by <span>${author}</span> - ${reportDate}
   </div>
 
 </body>
 </html>
-```
+\`\`\`
 
 Do NOT output anything outside the artifact.
 The artifact must start exactly with <!DOCTYPE html>.
@@ -365,204 +382,7 @@ The artifact must start exactly with <!DOCTYPE html>.
 
 Here is the Daily Report Content:
 
-[2026-03-20T02:50:14.110Z] Việt Lê.Đ:
-ae train thì dùng GPU1 nha mn
+${dailyReportText}`;
+}
 
----
-
-[2026-03-20T02:50:37.408Z] Việt Lê.Đ:
-GPU0 bên Virutal Chef cũng đang train
-
----
-
-[2026-03-20T03:30:29.152Z] Việt Lê.Đ:
-Server sụp rồi, ae nào train dở thì resume lại nha
-
----
-
-[2026-03-20T03:34:14.777Z] Dung Dao:
-Ae để cái monitor đi, make it 80% thì không cho dùng more.
-
----
-
-[2026-03-20T03:34:25.851Z] Dung Dao:
-Chứ làm gì push server đến mức sụp hoài vậy.
-
----
-
-[2026-03-20T03:36:49.158Z] Việt Lê.Đ:
-giới hạn CPU lại nha
-
----
-
-[2026-03-20T03:37:10.935Z] Việt Lê.Đ:
-đối mới mấy cái multiprocessing
-
----
-
-[2026-03-20T03:37:52.060Z] Dung Dao:
-Ae bức tử server hoài có ngày nó ngủm lun đó.
-
----
-
-[2026-03-20T03:38:13.480Z] Dung Dao:
-Server hết bảo hành rồi.
-
----
-
-[2026-03-20T03:38:38.712Z] Việt Lê.Đ:
-sắm con mới thôi
-
----
-
-[2026-03-20T03:38:42.604Z] Duy Nguyen:
-AI lên ngôi a Dũng
-
----
-
-[2026-03-20T03:38:57.566Z] Gioi Nguyen:
-anh Dũng nhắn ngoài rúp full member cho mn biết lun anh
-
----
-
-[2026-03-20T03:39:08.496Z] Việt Lê.Đ:
-con nào host đc LLM í, chứ sài gaming PC thì outdate roài
-
----
-
-[2026-03-20T03:39:09.897Z] Dung Dao:
-Việt Lê.Đ
-3/20/2026 5:38 AM
-sắm con mới thôi 
-
-Có đó
-
----
-
-[2026-03-20T03:39:17.811Z] Dung Dao:
-Ae cần thì book
-
----
-
-[2026-03-20T03:39:24.287Z] Dung Dao:
-Con bữa a nói ae đó
-
----
-
-[2026-03-20T03:39:27.113Z] Dung Dao:
-cty có 5 con
-
----
-
-[2026-03-20T03:39:31.760Z] Dung Dao:
-mới về rồi
-
----
-
-[2026-03-20T03:39:39.842Z] Gioi Nguyen:
-con số trên giấy tờ hén anh
-
----
-
-[2026-03-20T03:40:18.013Z] Việt Lê.Đ:
-à con 128GB hả
-
----
-
-[2026-03-20T03:40:32.869Z] Việt Lê.Đ:
-sức mạnh ngang 5070 nhưng nhiều VRAM hơn )
-
----
-
-[2026-03-20T03:40:56.507Z] Duy Nguyen:
-book được 1 năm hk Việt
-
----
-
-[2026-03-20T03:41:24.165Z] Việt Lê.Đ:
-hk có đâu, hàng sài chung mà
-
----
-
-[2026-03-20T03:44:34.061Z] Dung Dao:
-Book theo schedule.
-
----
-
-[2026-03-20T03:44:44.179Z] Dung Dao:
-Và ae reserve bao nhiêu vRAM
-
----
-
-[2026-03-20T11:29:20.846Z] Cao Hoai Linh:
-2026/03/20 – Linh
-
-Today:
-
-Generate AI Java dataset from scratch (Done) :
-
-Grok: 1668 Files
-
-Claude: 2055 Files
-
-Built checkpoint for model training (Done)
-
-Training model version 3.0 for Java (Pending dataset updates from Gioi to start)
-
----
-
-[2026-03-20T12:39:24.656Z] Tuấn Trần Anh:
-2026/03/20 – Tuan
-
-Today:
-
-- Investigated new C/C++ datasets and updated them in the data loader (ongoing).
-
-- Added new loader for MageCode dataset (Done)
-
-- Generated AI Java dataset from scratch (Done)
-
-Tomorrow:
-
-- Continue task
-
----
-
-[2026-03-20T12:41:55.392Z] Long Le:
-2026/03/20 - Long 50% effort
-Today:
-- Crawl CPP Github repositories (Ongoing)
-Tomorrow: Continue task
-
----
-
-[2026-03-20T12:43:48.935Z] Duy Nguyen:
-2026/03/20 - Duy 50% effort 
-Today:
-- Benchmark ONNX model (ongoing)
-Tomorrow: continue task
-
----
-
-[2026-03-20T02:02:05.354Z] Việt Lê.Đ:
-AI Generated Code Detection - Daily Meeting
-Friday, March 20, 2026
-9:00 AM - 9:30 AM
-
-https://teams.live.com/meet/9398876786480?p=GGTJvlamWuoFXoQoT0
-
----
-
-[2026-03-20T02:48:19.812Z] Việt Lê.Đ:
-V2.1 Evaluation 
-
-Đánh giá overall data (Human và AI Gen samples)
-Thêm AI Gen data: ~1000 samples 
-Đánh giá acc với tokens >= 300, 400, 500, 600 
-
-=> Confusion matrix, F1, Precision, Recall, Accuacry => cho ra threshold mimum input tokens
-
----
-
-[2026-03-20T02:49:36.374Z] Việt Lê.Đ:
-Thử nghiệm 3: Gen AI data cho model học thêm các đoạn short code AI
+module.exports = { buildPrompt };

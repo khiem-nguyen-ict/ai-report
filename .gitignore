@@ -1,6 +1,7 @@
 user-data/
 node_modules/
 teams-profile/
+app-data/
 .zimbra-session
 .env
 .DS_Store
