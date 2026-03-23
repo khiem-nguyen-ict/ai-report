@@ -13,6 +13,15 @@ const DOWNLOAD_TIMEOUT = 60_000;
 let _context = null;
 let _page = null;
 
+async function closeBrowser() {
+    if (_context) {
+        await _context.close().catch(() => {});
+        _context = null;
+        _page = null;
+        console.log("🔒 Browser closed.");
+    }
+}
+
 // ── Browser / page management ─────────────────────────────────────────────
 
 async function getPage() {
@@ -169,6 +178,8 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
     const absPath = path.resolve(outputPath);
     await download.saveAs(absPath);
     console.log(`✅ File saved to: ${absPath}`);
+
+    await closeBrowser();
 
     return absPath;
 }
