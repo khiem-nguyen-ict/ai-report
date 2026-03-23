@@ -13,7 +13,6 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("playwright");
-const { execSync } = require("child_process");
 
 // ─────────────────────────────────────────────
 //  CONFIGURATION
@@ -24,25 +23,51 @@ const CONFIG = {
   sessionDir: path.resolve(__dirname, ".zimbra-session"), // store cookies/session
 };
 
-// ─────────────────────────────────────────────
-//  RECIPIENT LIST — read from .env
-//  Format: RECIPIENTS=Name1:email1,Name2:email2
-// ─────────────────────────────────────────────
-const RECIPIENT_LIST = (process.env.RECIPIENTS || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean)
-  .map((s) => {
-    const [name, email] = s.split(":").map((p) => p.trim());
-    return { name: name || email, email };
-  });
-
-if (RECIPIENT_LIST.length === 0) {
-  console.error("❌ RECIPIENTS not configured in .env");
+const TO_RECIPIENTS = process.env.TO_RECIPIENTS || "";
+if (TO_RECIPIENTS === "") {
+  console.error("❌ TO_RECIPIENTS not configured in .env");
   console.error(
-    "   Example: RECIPIENTS=Nguyen Van A:a@tma.com.vn,Tran Thi B:b@tma.com.vn",
+    `   Example: "Thanh Ho Ngoc" <hnthanh@tma.com.vn>; "Nguyen Tran Hoan Anh" <thanguyen@tma.com.vn>`,
   );
   process.exit(1);
+}
+
+const CC_RECIPIENTS = process.env.CC_RECIPIENTS || "";
+
+function getCurrentWeekAndSprint(inputDate = new Date()) {
+  const startDateStr = process.env.PROJECT_START_DATE;
+  const weeksPerSprint =
+    parseInt(process.env.NUMBER_OF_WEEKS_PER_SPRINT, 10) || 2;
+  const startSprint = parseInt(process.env.START_SPRINT, 10) || 0;
+  const startWeek = parseInt(process.env.START_WEEK, 10) || 1;
+
+  if (!startDateStr) {
+    throw new Error("PROJECT_START_DATE is not defined in .env");
+  }
+
+  const startDate = new Date(startDateStr);
+  const currentDate = new Date(inputDate);
+
+  if (isNaN(startDate.getTime())) {
+    throw new Error("Invalid PROJECT_START_DATE format. Use yyyy/mm/dd");
+  }
+
+  // Normalize time
+  startDate.setHours(0, 0, 0, 0);
+  currentDate.setHours(0, 0, 0, 0);
+
+  const diffMs = currentDate - startDate;
+
+  if (diffMs < 0) {
+    return { week: 0, sprint: 0 };
+  }
+
+  const week = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + startWeek;
+
+  // 👉 Sprint starts from 0
+  const sprint = Math.floor((week - startWeek)/ weeksPerSprint) + startSprint;
+
+  return { week, sprint };
 }
 
 function loadHtmlBody(target) {
@@ -108,6 +133,51 @@ async function waitForLogin(page) {
   await page.waitForTimeout(1500);
 }
 
+async function fillComposeField(page, type, value) {
+  let selector;
+
+  switch (type) {
+    case "to":
+    case "cc":
+    case "bcc":
+      selector = `input[id$='_${type}_control']`;
+      break;
+
+    case "subject":
+      selector = `input[id$='_subject_control']`;
+      break;
+
+    default:
+      throw new Error(`Unsupported field type: ${type}`);
+  }
+
+  const field = page.locator(selector).first();
+
+  if ((await field.count()) === 0) {
+    throw new Error(`Could not find ${type.toUpperCase()} field`);
+  }
+
+  await field.waitFor({ state: "visible" });
+
+  // 👉 Bubble fields (To/CC/BCC)
+  if (["to", "cc", "bcc"].includes(type)) {
+    await field.click({ force: true });
+    await field.fill(""); // reset (optional)
+    await field.type(value, { delay: 50 });
+    await field.press("Tab"); // commit → create bubble
+  }
+
+  // 👉 Normal field (Subject)
+  if (type === "subject") {
+    await field.click();
+    await field.fill(value);
+  }
+
+  console.log(`  ✍️  Filled ${type.toUpperCase()} field`);
+
+  await page.waitForTimeout(300);
+}
+
 // ─────────────────────────────────────────────
 //  COMPOSE AND SEND EMAIL (Zimbra Classic) — fallback
 // ─────────────────────────────────────────────
@@ -115,6 +185,7 @@ async function composeAndSend(
   page,
   browser,
   recipients,
+  cc_recipients,
   date,
   resolvedHtmlFilePath,
 ) {
@@ -128,7 +199,9 @@ async function composeAndSend(
     "td.ZToolbarButton:has-text('New Message')",
   ];
 
-  const EMAIL_SUBJECT = `[${process.env.COMPANY}][${process.env.CLIENT}] ${process.env.PROJECT} - Daily Report on ${date}`;
+  const r = getCurrentWeekAndSprint(date);
+
+  const emailSubject = `[${process.env.COMPANY}][${process.env.CLIENT}] ${process.env.PROJECT} - Daily Report on ${date} - Week #${r.week}, Sprint #${r.sprint}`;
 
   let clicked = false;
   for (const sel of newMsgSelectors) {
@@ -144,50 +217,9 @@ async function composeAndSend(
 
   await page.waitForTimeout(2000);
 
-  // Fill To field
-  const toSelectors = [
-    "input[id^='zv__COMPOSE'][id$='_to_control']",
-    "input[class*='addrInput'][aria-label*='To']",
-    "textarea[id$='_to_control']",
-    "div[id^='zv__COMPOSE'] input[type='text']",
-  ];
-  let toFilled = false;
-
-  const strRep = recipients.map((r) => `"${r.name}" <${r.email}>`).join(";");
-
-  for (const sel of toSelectors) {
-    const field = page.locator(sel).first();
-    if ((await field.count()) > 0) {
-      await field.click();
-      await field.fill(strRep);
-      await field.press("Tab");
-      toFilled = true;
-      console.log(`  ✍️  Filled To (selector: ${sel})`);
-      break;
-    }
-  }
-  if (!toFilled) throw new Error("Could not find To input field");
-  await page.waitForTimeout(500);
-
-  // Fill Subject field
-  const subjectSelectors = [
-    "input[id^='zv__COMPOSE'][id$='_subject']",
-    "input[id*='_subject']",
-    "input[aria-label*='Subject']",
-  ];
-  let subjectFilled = false;
-  for (const sel of subjectSelectors) {
-    const field = page.locator(sel).first();
-    if ((await field.count()) > 0) {
-      await field.click();
-      await field.fill(EMAIL_SUBJECT);
-      subjectFilled = true;
-      console.log(`  ✍️  Filled Subject (selector: ${sel})`);
-      break;
-    }
-  }
-  if (!subjectFilled) throw new Error("Could not find Subject field");
-  await page.waitForTimeout(500);
+  await fillComposeField(page, "to", recipients);
+  await fillComposeField(page, "cc", cc_recipients);
+  await fillComposeField(page, "subject", emailSubject);
 
   // Open HTML file in new tab → Cmd+A → Cmd+C → paste into editor
   const htmlFileUrl = `file://${resolvedHtmlFilePath}`;
@@ -230,7 +262,7 @@ async function composeAndSend(
 
   // Click Send button
   const sendSelectors = [
-    "td[id^='zb__COMPOSE'][id$='__SEND_MENU_title']", 
+    "td[id^='zb__COMPOSE'][id$='__SEND_MENU_title']",
     "td[id$='__SEND_MENU_title']",
     "div[id$='__SEND_MENU']",
     "td[id$='__SEND_MENU']",
@@ -320,14 +352,15 @@ async function run(date, reportFile) {
 
     // Start sending email
     console.log(
-      `\n📧 Starting to send to ${RECIPIENT_LIST.length} recipients...\n`,
+      `\n📧 Starting to send to '${TO_RECIPIENTS}', and cc '${CC_RECIPIENTS}' ...\n`,
     );
 
     try {
       await composeAndSend(
         page,
         browser,
-        RECIPIENT_LIST,
+        TO_RECIPIENTS,
+        CC_RECIPIENTS,
         date,
         resolvedFilePath,
       );
@@ -338,7 +371,7 @@ async function run(date, reportFile) {
       console.log("  📸 Screenshot saved: error-screenshot.png");
     }
   } finally {
-    await browser.close(); 
+    await browser.close();
   }
 }
 
