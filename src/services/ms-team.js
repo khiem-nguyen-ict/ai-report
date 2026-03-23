@@ -144,7 +144,7 @@ async function run() {
         await waitForTeamsShell(page);
     } catch (e) {
         console.error("❌ Chat button not found (Teams shell). Current URL:", page.url());
-        await page.screenshot({ path: "teams-shell-timeout.png", fullPage: true }).catch(() => { });
+        await page.screenshot({ path: path.join(__dirname, "../../app-data/teams-shell-timeout.png"), fullPage: true }).catch(() => { });
         throw e;
     }
 

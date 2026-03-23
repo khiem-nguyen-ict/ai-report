@@ -377,7 +377,7 @@ async function run(date, reportFile) {
             console.log(`  ✅ Email sent successfully!\n`);
         } catch (err) {
             console.error(`  ❌ Failed to send email: ${err.message}\n`);
-            await page.screenshot({ path: "error-screenshot.png" });
+            await page.screenshot({ path: path.join(__dirname, "../../app-data/error-screenshot.png") });
             console.log("  📸 Screenshot saved: error-screenshot.png");
         }
     } finally {
