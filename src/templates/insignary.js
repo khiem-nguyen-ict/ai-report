@@ -42,17 +42,6 @@ const TMA_BRAND_CSS = `
     gap: 20px;
     border-bottom: 4px solid var(--highlight-color);
   }
-  .report-header .logo-block {
-    background: var(--highlight-color);
-    color: #fff;
-    font-weight: 900;
-    font-size: 24px;
-    letter-spacing: 1px;
-    padding: 8px 14px;
-    border-radius: 3px;
-    flex-shrink: 0;
-    font-family: Arial Black, Arial, sans-serif;
-  }
   .report-header .title-block h1 {
     font-size: 22px;
     font-weight: 700;
