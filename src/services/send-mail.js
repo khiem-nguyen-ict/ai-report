@@ -19,6 +19,8 @@ const CONFIG = {
   zimbraUrl: process.env.ZIMBRA_URL || "https://webmail.tma.com.vn",
   fromName: process.env.FROM_NAME || "Khiem Nguyen Thanh",
   sessionDir: path.resolve(__dirname, "../../.zimbra-session"), // store cookies/session
+  emailUser: process.env.EMAIL_USER || "",
+  emailPass: process.env.EMAIL_PASS || "",
 };
 
 const TO_RECIPIENTS = process.env.TO_RECIPIENTS || "";
@@ -83,7 +85,44 @@ function loadHtmlBody(target) {
 //  CHECK IF LOGGED IN
 // ─────────────────────────────────────────────
 async function isLoggedIn(page) {
+  console.log("[DEBUG isLoggedIn] Checking login status...");
+  console.log("[DEBUG isLoggedIn] Current URL:", page.url());
+  console.log("[DEBUG isLoggedIn] Current title:", await page.title());
+
   try {
+    // First check: are we on the login page?
+    const onLoginPage = await page.evaluate(() => {
+      return (
+        document.title === "Zimbra Web Client Sign In" ||
+        window.location.href.includes("loginOp") ||
+        window.location.href.includes("/login")
+      );
+    });
+    console.log("[DEBUG isLoggedIn] On login page?", onLoginPage);
+
+    // Get all cookies for debugging
+    const cookies = await page.context().cookies();
+    const zimbraCookies = cookies.filter((c) =>
+      c.domain.includes("tma.com.vn"),
+    );
+    console.log(
+      "[DEBUG isLoggedIn] Zimbra cookies count:",
+      zimbraCookies.length,
+    );
+    for (const c of zimbraCookies) {
+      console.log(
+        "[DEBUG isLoggedIn] Cookie:",
+        c.name,
+        "expires:",
+        c.expires ? new Date(c.expires * 1000).toISOString() : "session",
+      );
+    }
+
+    if (onLoginPage) {
+      console.log("[DEBUG isLoggedIn] Login page detected - returning false");
+      return false;
+    }
+
     await page.waitForFunction(
       () => {
         if (document.title === "Zimbra Web Client Sign In") return false;
@@ -96,8 +135,239 @@ async function isLoggedIn(page) {
       },
       { timeout: 6000, polling: 500 },
     );
+    console.log("[DEBUG isLoggedIn] App elements found - returning true");
     return true;
-  } catch {
+  } catch (e) {
+    console.log(
+      "[DEBUG isLoggedIn] Error/timeout - returning false:",
+      e.message,
+    );
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  AUTO-FILL LOGIN FORM
+// ─────────────────────────────────────────────
+async function autoFillLoginForm(page) {
+  // Check if credentials are configured
+  if (!CONFIG.emailUser || !CONFIG.emailPass) {
+    console.log("[AUTO-FILL] Email credentials not configured in .env");
+    console.log(
+      "[AUTO-FILL] Please set EMAIL_USER and EMAIL_PASS in .env file",
+    );
+    return false;
+  }
+
+  console.log("[AUTO-FILL] Attempting to auto-fill login form...");
+
+  try {
+    // Wait a bit for the login form to fully load
+    await page.waitForTimeout(1000);
+
+    // Check for Zimbra Classic login form
+    const isClassicLogin = await page.evaluate(() => {
+      // Zimbra Classic: typically has name="username" or "email" input
+      const usernameInput = document.querySelector(
+        'input[name="username"], input[name="email"], input[id*="username"], input[id*="email"]',
+      );
+      const passwordInput = document.querySelector(
+        'input[name="password"], input[type="password"]',
+      );
+      return !!usernameInput && !!passwordInput;
+    });
+
+    // Check for modern Zimbra login form
+    const isModernLogin = await page.evaluate(() => {
+      // Modern Zimbra: typically has name="username" or "user" input
+      const usernameInput = document.querySelector(
+        'input[name="username"], input[name="user"], input[id*="username"], input[type="email"], input[type="text"]',
+      );
+      const passwordInput = document.querySelector('input[type="password"]');
+      return !!usernameInput && !!passwordInput;
+    });
+
+    if (!isClassicLogin && !isModernLogin) {
+      console.log(
+        "[AUTO-FILL] Login form not found or credentials not configured",
+      );
+      return false;
+    }
+
+    // Find and fill username/email field - Zimbra Classic
+    const usernameSelectors = [
+      'input[name="username"]',
+      'input[name="email"]',
+      'input[id*="username"]',
+      'input[id*="email"]',
+      'input[type="email"]',
+      'input[type="text"]',
+    ];
+
+    let usernameFilled = false;
+    for (const selector of usernameSelectors) {
+      const input = page.locator(selector).first();
+      if ((await input.count()) > 0 && (await input.isVisible())) {
+        await input.fill(CONFIG.emailUser);
+        console.log(`[AUTO-FILL] Filled username/email: ${CONFIG.emailUser}`);
+        usernameFilled = true;
+        break;
+      }
+    }
+
+    if (!usernameFilled) {
+      console.log("[AUTO-FILL] Could not find username/email field");
+      return false;
+    }
+
+    // Find and fill password field
+    const passwordSelectors = [
+      'input[name="password"]',
+      'input[type="password"]',
+    ];
+
+    let passwordFilled = false;
+    for (const selector of passwordSelectors) {
+      const input = page.locator(selector).first();
+      if ((await input.count()) > 0 && (await input.isVisible())) {
+        await input.fill(CONFIG.emailPass);
+        console.log("[AUTO-FILL] Filled password field");
+        passwordFilled = true;
+        break;
+      }
+    }
+
+    if (!passwordFilled) {
+      console.log("[AUTO-FILL] Could not find password field");
+      return false;
+    }
+
+    // Look for and check "Remember me" or "Save user" checkbox
+    // These selectors are specifically for Zimbra's "Save user" / "Remember me" functionality
+    const rememberMeSelectors = [
+      // Most specific - Zimbra's save user checkbox
+      'input[name="saveUser"]',
+      'input[name="zremember"]',
+      'input[id*="saveUser"]',
+      'input[id*="remember"]',
+      // Common remember me patterns
+      'input[name="remember"]',
+      'input[name="rememberMe"]',
+      'input[name="remember_me"]',
+      // Checkbox in label with text
+      'input[type="checkbox"] + label',
+      'label > input[type="checkbox"]',
+    ];
+
+    let checkboxChecked = false;
+    for (const selector of rememberMeSelectors) {
+      const element = page.locator(selector).first();
+      if ((await element.count()) > 0 && (await element.isVisible())) {
+        // Check if it's a checkbox or a label wrapping a checkbox
+        const isCheckboxAndChecked = await element.evaluate((el) => {
+          // If it's directly a checkbox
+          if (el.type === "checkbox") {
+            return { isCheckbox: true, checked: el.checked };
+          }
+          // If it's a label, check if it contains a checkbox
+          if (el.tagName === "LABEL") {
+            const checkbox = el.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+              return { isCheckbox: true, checked: checkbox.checked };
+            }
+          }
+          return { isCheckbox: false, checked: false };
+        });
+
+        if (isCheckboxAndChecked.isCheckbox && !isCheckboxAndChecked.checked) {
+          // If it's a label, click the label to toggle the checkbox
+          // If it's a checkbox, click it directly
+          await element.click({ force: true });
+          console.log(
+            "[AUTO-FILL] Checked 'Save user' / 'Remember me' checkbox",
+          );
+          checkboxChecked = true;
+        } else if (
+          isCheckboxAndChecked.isCheckbox &&
+          isCheckboxAndChecked.checked
+        ) {
+          console.log(
+            "[AUTO-FILL] 'Save user' / 'Remember me' already checked",
+          );
+          checkboxChecked = true;
+        }
+        if (checkboxChecked) break;
+      }
+    }
+
+    // Fallback: Try to find checkbox by looking at label text
+    if (!checkboxChecked) {
+      const labelSelectors = [
+        'label:has-text("Save user")',
+        'label:has-text("Remember me")',
+        'label:has-text("Remember")',
+        'span:has-text("Save user")',
+        'span:has-text("Remember me")',
+      ];
+
+      for (const labelSelector of labelSelectors) {
+        const label = page.locator(labelSelector).first();
+        if ((await label.count()) > 0 && (await label.isVisible())) {
+          // Click the label to toggle the associated checkbox
+          await label.click({ force: true });
+          console.log("[AUTO-FILL] Checked checkbox via label text");
+          checkboxChecked = true;
+          break;
+        }
+      }
+    }
+
+    if (!checkboxChecked) {
+      console.log(
+        "[AUTO-FILL] Warning: Could not find 'Save user' / 'Remember me' checkbox",
+      );
+    }
+
+    // Submit the login form
+    const submitSelectors = [
+      'input[type="submit"]',
+      'button[type="submit"]',
+      'button:has-text("Sign In")',
+      'button:has-text("Login")',
+      'input[value="Sign In"]',
+      'input[value="Login"]',
+      'a:has-text("Sign In")',
+      'div[role="button"]:has-text("Sign In")',
+      'div:has-text("Sign In")',
+      'td:has-text("Sign In")',
+    ];
+
+    let submitted = false;
+    for (const selector of submitSelectors) {
+      const btn = page.locator(selector).first();
+      if ((await btn.count()) > 0 && (await btn.isVisible())) {
+        await btn.click();
+        console.log(
+          `[AUTO-FILL] Clicked submit button (selector: ${selector})`,
+        );
+        submitted = true;
+        break;
+      }
+    }
+
+    if (!submitted) {
+      // Try pressing Enter in password field
+      await page.keyboard.press("Enter");
+      console.log("[AUTO-FILL] Pressed Enter to submit form");
+    }
+
+    // Wait for navigation to complete
+    await page.waitForTimeout(2000);
+
+    console.log("[AUTO-FILL] Login form submitted successfully");
+    return true;
+  } catch (error) {
+    console.error("[AUTO-FILL] Error during auto-fill:", error.message);
     return false;
   }
 }
@@ -106,14 +376,53 @@ async function isLoggedIn(page) {
 //  WAIT FOR LOGIN (show login URL, wait for user action)
 // ─────────────────────────────────────────────
 async function waitForLogin(page) {
-  // Wait for URL to change from login page
-  await page.waitForFunction(
-    () =>
-      !window.location.href.includes("loginOp") &&
-      !window.location.href.includes("/login") &&
-      document.title !== "Zimbra Web Client Sign In",
-    { timeout: 180000, polling: 1000 },
-  );
+  // Check if login form is present and try to auto-fill
+  const loginFormPresent = await page.evaluate(() => {
+    const usernameInput = document.querySelector(
+      'input[name="username"], input[name="email"], input[type="email"], input[type="text"]',
+    );
+    const passwordInput = document.querySelector(
+      'input[name="password"], input[type="password"]',
+    );
+    return !!usernameInput && !!passwordInput;
+  });
+
+  if (loginFormPresent) {
+    console.log("[WAIT-FOR-LOGIN] Login form detected");
+    const autoFilled = await autoFillLoginForm(page);
+    if (autoFilled) {
+      // Wait for login to complete after auto-fill
+      await page.waitForFunction(
+        () =>
+          !window.location.href.includes("loginOp") &&
+          !window.location.href.includes("/login") &&
+          document.title !== "Zimbra Web Client Sign In",
+        { timeout: 60000, polling: 1000 },
+      );
+    } else {
+      // Fallback to manual login
+      console.log(
+        "[WAIT-FOR-LOGIN] Auto-fill failed, waiting for manual login...",
+      );
+      await page.waitForFunction(
+        () =>
+          !window.location.href.includes("loginOp") &&
+          !window.location.href.includes("/login") &&
+          document.title !== "Zimbra Web Client Sign In",
+        { timeout: 180000, polling: 1000 },
+      );
+    }
+  } else {
+    // Wait for URL to change from login page
+    await page.waitForFunction(
+      () =>
+        !window.location.href.includes("loginOp") &&
+        !window.location.href.includes("/login") &&
+        document.title !== "Zimbra Web Client Sign In",
+      { timeout: 180000, polling: 1000 },
+    );
+  }
+
   // Wait for "Loading..." to disappear and toolbar to appear
   await page.waitForFunction(
     () => {
@@ -233,10 +542,30 @@ async function composeAndSend(
 
   // Step 2: Cmd+A (Select All) then Cmd+C (Copy)
   await htmlPage.keyboard.press("Meta+a");
-  await htmlPage.waitForTimeout(300);
+  // verify
+  let hasSelection = false;
+  let selection = null;
+  for (let i = 1; i <= 5 && !hasSelection; i++) {
+    await htmlPage.waitForTimeout(500);
+     hasSelection = await htmlPage.evaluate(() => {
+      selection = window.getSelection();
+      return selection && selection.toString().length > 0;
+    });
+  }
+
+  if (!hasSelection) {
+    console.log("\n❌ Unable to select text to copy.\n");
+    await htmlPage.close();
+    await browser.close();
+    process.exit(0);
+  }
+
   await htmlPage.keyboard.press("Meta+c");
-  await htmlPage.waitForTimeout(300);
+  await htmlPage.waitForTimeout(1000);
   console.log("  📋 Executed Cmd+A + Cmd+C on HTML content");
+
+  // Step 3: Close HTML tab
+  await htmlPage.close();
 
   // Step 4: Click into editor iframe then Cmd+A + Cmd+V
   const editorFrame = page
@@ -252,13 +581,11 @@ async function composeAndSend(
     await editorBody.press("Meta+v"); // Paste from clipboard
     await page.waitForTimeout(800);
     console.log("  ✍️  Pasted content into Zimbra editor");
+    await editorBody.press("Meta+ArrowUp");
   } else {
     throw new Error("Could not find email body editor (iframe)");
   }
-  await page.waitForTimeout(500); // Wait for to have a look first!!!
-
-  // Step 3: Close HTML tab
-  await htmlPage.close();
+  await page.waitForTimeout(5000); // Wait for to have a look first, and the pasting can works well!!
 
   // Click Send button
   const sendSelectors = [
@@ -273,31 +600,34 @@ async function composeAndSend(
   for (const sel of sendSelectors) {
     try {
       const btn = page.locator(sel).first();
+
       if ((await btn.count()) > 0 && (await btn.isVisible())) {
-        // ─────────────────────────────────────────────
-        //  CONFIRMATION PROMPT - Show BEFORE clicking Send
-        //  This gives user time to visually check email in browser
-        // ─────────────────────────────────────────────
+        console.log("\n📨 Email ready in browser.");
+        console.log("👉 Please review before sending.\n");
+
+        // 🔥 CONFIRM HERE (popup)
         const confirmed = await promptSendConfirmation();
+
         if (!confirmed) {
-          console.log(
-            "\n❌ Email send cancelled by user. Browser will close.\n",
-          );
+          console.log("\n❌ Email send cancelled by user.\n");
           await htmlPage.close();
           await browser.close();
           process.exit(0);
         }
+
         console.log("\n✅ Proceeding to send email...\n");
 
         await btn.click({ timeout: 5000 });
         sent = true;
-        console.log(`  🚀 Clicked Send (selector: ${sel})`);
+
+        console.log(`🚀 Clicked Send (selector: ${sel})`);
         break;
       }
     } catch {
       continue;
     }
   }
+
   if (!sent) {
     // Log visible buttons in compose area for debugging
     const allBtns = await page
@@ -322,43 +652,22 @@ async function composeAndSend(
 //  MAIN
 // ─────────────────────────────────────────────
 
-/**
- * Prompt user for confirmation BEFORE clicking Send button.
- * This is called AFTER the browser opens and email is populated in compose window.
- * Allows user to visually check the email in the actual Gmail/Zimbra interface.
- * @returns {Promise<boolean>} - true if user confirms to send, false otherwise
- */
-async function promptSendConfirmation() {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+const { exec } = require("child_process");
 
+function promptSendConfirmation() {
   return new Promise((resolve) => {
-    console.log("\n" + "=".repeat(60));
-    console.log("📧 EMAIL READY IN BROWSER");
-    console.log("=".repeat(60));
-    console.log("\n✅ The email has been populated in the compose window.");
-    console.log("   Please review the email in the browser before sending.");
-    console.log("\n" + "-".repeat(60));
-
-    rl.question("\n❓ Send now? (yes/no/y/n): ", (answer) => {
-      rl.close();
-      const normalized = answer.trim().toLowerCase();
-      const confirmed =
-        normalized === "yes" ||
-        normalized === "y" ||
-        normalized === "YES" ||
-        normalized === "Y";
-
-      if (confirmed) {
-        console.log("\n✅ Confirmed - sending email...\n");
-      } else {
-        console.log("\n❌ Cancelled - email will not be sent.\n");
-      }
-
-      resolve(confirmed);
-    });
+    // support Automator
+    exec(
+      `osascript -e 'button returned of (display dialog "Send email now?" buttons {"No","Yes"} default button "Yes")'`,
+      (error, stdout) => {
+        if (error) {
+          console.log("⚠️ Dialog failed, treating as cancel");
+          return resolve(false);
+        }
+        const result = stdout.toString().trim();
+        resolve(result === "Yes");
+      },
+    );
   });
 }
 
