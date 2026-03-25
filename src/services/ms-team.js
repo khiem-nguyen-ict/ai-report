@@ -5,7 +5,7 @@ const { chromium } = require("playwright");
 const fs = require("fs");
 
 const PROFILE_DIR = "./teams-profile";
-const GROUP_NAME = process.env.GROUP_NAME || "Mini Insignary Internal";
+const NS_TEAM_GROUP_NAME = process.env.NS_TEAM_GROUP_NAME || "Mini Insignary Internal";
 const TIMEOUT = 30_000; // ⏱️ 30s for each click/list action
 const SHELL_TIMEOUT = 120_000; // Teams SPA loads slowly / many network connections
 /** Maximum number of scroll ups to lazy-load more messages for the same day (enough for ~1 day of chat). */
@@ -149,7 +149,7 @@ async function run() {
     }
 
     // --- Chat → open correct group by name ---
-    await openGroupChat(page, GROUP_NAME);
+    await openGroupChat(page, NS_TEAM_GROUP_NAME);
     await page.waitForTimeout(2000);
 
     // --- Scroll thread to load history, collect messages and keep only the latest day ---

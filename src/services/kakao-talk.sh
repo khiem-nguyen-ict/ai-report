@@ -10,6 +10,11 @@ TODAY=$(date +"%Y-%m-%d")
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Load environment variables from .env file
+if [ -f "${SCRIPT_DIR}/../../.env" ]; then
+    source "${SCRIPT_DIR}/../../.env"
+fi
+
 # Define the report directory (relative to script location)
 REPORT_DIR="${SCRIPT_DIR}/../../app-data"
 
@@ -100,7 +105,7 @@ tell application "System Events"
     delay 0.2
     
     -- Type group name
-    keystroke "[Insignary-TMA] AI Dev"
+    keystroke "${KAKAO_TALK_GROUP_NAME}"
     delay 0.5
     
     -- Get KakaoTalk window position
