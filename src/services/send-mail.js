@@ -547,7 +547,7 @@ async function composeAndSend(
   let selection = null;
   for (let i = 1; i <= 5 && !hasSelection; i++) {
     await htmlPage.waitForTimeout(500);
-     hasSelection = await htmlPage.evaluate(() => {
+    hasSelection = await htmlPage.evaluate(() => {
       selection = window.getSelection();
       return selection && selection.toString().length > 0;
     });
@@ -557,7 +557,7 @@ async function composeAndSend(
     console.log("\n❌ Unable to select text to copy.\n");
     await htmlPage.close();
     await browser.close();
-    process.exit(0);
+    process.exit(1);
   }
 
   await htmlPage.keyboard.press("Meta+c");
@@ -612,7 +612,7 @@ async function composeAndSend(
           console.log("\n❌ Email send cancelled by user.\n");
           await htmlPage.close();
           await browser.close();
-          process.exit(0);
+          process.exit(1);
         }
 
         console.log("\n✅ Proceeding to send email...\n");
