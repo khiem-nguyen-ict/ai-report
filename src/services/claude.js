@@ -23,8 +23,8 @@ function cleanupStaleBrowserFiles() {
 // ── Timeout / polling config ───────────────────────────────────────────────
 const STREAMING_TIMEOUT_MS = 15 * 60_000;
 const POLL_INTERVAL_MS = 10_000;
-const EDITOR_READY_TIMEOUT = 30000;
-const FIRST_RESPONSE_TIMEOUT = 90_000;
+const EDITOR_READY_TIMEOUT = 60000;
+const FIRST_RESPONSE_TIMEOUT = 180_000;
 const DOWNLOAD_TIMEOUT = 60_000;
 
 let _context = null;
@@ -150,6 +150,10 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
         el.focus();
         document.execCommand("insertText", false, text);
     }, prompt);
+
+    // Re-focus the editor and add a small delay to ensure text is properly inserted
+    await editor.click();
+    await page.waitForTimeout(100);
 
     await page.keyboard.press("Enter");
     console.log("📤 Prompt submitted.");

@@ -469,8 +469,10 @@ async function fillComposeField(page, type, value) {
   // 👉 Bubble fields (To/CC/BCC)
   if (["to", "cc", "bcc"].includes(type)) {
     await field.click({ force: true });
-    await field.fill(""); // reset (optional)
-    await field.type(value, { delay: 50 });
+    await field.fill(""); // reset the field
+    // Use fill() to set the entire value at once - more reliable than type()
+    // especially for values with special characters like quotes and angle brackets
+    await field.fill(value);
     await field.press("Tab"); // commit → create bubble
   }
 
