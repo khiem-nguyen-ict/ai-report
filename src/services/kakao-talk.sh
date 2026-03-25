@@ -7,8 +7,47 @@
 # Get today's date (format: YYYY-MM-DD)
 TODAY=$(date +"%Y-%m-%d")
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Define the report directory (relative to script location)
+REPORT_DIR="${SCRIPT_DIR}/../../app-data"
+
+# Find the latest HTML report file (order by date DESC in filename)
+LATEST_REPORT=$(ls -1 "$REPORT_DIR"/report_*.html 2>/dev/null | sort -r -t'_' -k2 | head -n1)
+
+if [ -z "$LATEST_REPORT" ]; then
+    echo "Error: no report found"
+    exit 1
+fi
+
+echo "Found latest report: $LATEST_REPORT"
+
+# Extract task categories and their sub-items from the HTML
+# Categories are in <div class="task-category">...</div>
+# Sub-items are in <li> inside <ul class="sub-list">
+FINAL_CONTENT=$(sed -n '/<div class="task-category">/,/<\/ul>/p' "$LATEST_REPORT" | \
+    sed 's/<div class="task-category">/📋 /g' | \
+    sed 's/<li>/\n  ➜ /g' | \
+    sed 's/<[^>]*>//g' | \
+    sed 's/&nbsp;/ /g' | \
+    sed 's/&amp;/\&/g' | \
+    sed 's/&lt;/</g' | \
+    sed 's/&gt;/>/g' | \
+    sed 's/&quot;/"/g' | \
+    sed "s/&#39;/'/g" | \
+    sed "s/&apos;/'/g" | \
+    awk 'NF {if (/^  ➜/) print; else {gsub(/^[[:space:]]+/, ""); print}}')
+
+# Build the MESSAGE with the extracted content
 MESSAGE="Daily Report - $TODAY:
-- 123 123"
+
+$FINAL_CONTENT"
+
+# Log the MESSAGE content for debugging
+echo "===== MESSAGE CONTENT ====="
+echo "$MESSAGE"
+echo "===== END MESSAGE ====="
 
 # Copy message to clipboard
 echo "$MESSAGE" | pbcopy
@@ -76,6 +115,31 @@ tell application "System Events"
 
     -- Double click using calculated position
     do shell script "cliclick dc:" & clickX & "," & clickY
+    delay 0.5
+    
+    -- Paste message from clipboard
+    keystroke "a" using command down
+    delay 0.5
+    keystroke "v" using command down
+    delay 0.5
+    
+    -- Show confirmation dialog
+    set confirmResult to display dialog "Do you want to send this message?" buttons {"Yes", "No"} default button "No" with icon note
+    
+    -- If user clicks Yes, send the message and close
+    if button returned of confirmResult is "Yes" then
+        -- Click Send button (approximate position based on window)
+        set sendClickX to (item 1 of winPos) + (item 1 of winSize) - 100
+        set sendClickY to (item 2 of winPos) + (item 2 of winSize) - 50
+        do shell script "cliclick c:" & sendClickX & "," & sendClickY
+        delay 0.5
+        
+        -- Press Escape 2 times to close all windows
+        key code 53 -- Escape
+        delay 0.3
+        key code 53 -- Escape
+        delay 0.3
+    end if
 
 end tell
 
