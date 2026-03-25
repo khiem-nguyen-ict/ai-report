@@ -54,8 +54,26 @@ echo "===== MESSAGE CONTENT ====="
 echo "$MESSAGE"
 echo "===== END MESSAGE ====="
 
+# Clear the file first to ensure no previous data remains
+> "${SCRIPT_DIR}/../../app-data/kakao-talk.txt"
+
 # Save the MESSAGE to file
 echo "$MESSAGE" > "${SCRIPT_DIR}/../../app-data/kakao-talk.txt"
+
+# Verify the new data was written correctly
+sleep 0.5
+WRITTEN_CONTENT=$(cat "${SCRIPT_DIR}/../../app-data/kakao-talk.txt")
+if [ -z "$WRITTEN_CONTENT" ]; then
+    echo "Error: failed to write message to kakao-talk.txt"
+    exit 1
+fi
+
+# Check if the file contains today's date (verify it's new data)
+if ! echo "$WRITTEN_CONTENT" | grep -q "$TODAY"; then
+    echo "Error: written content does not contain today's date. Previous data may still be present."
+    exit 1
+fi
+echo "Successfully wrote new data to kakao-talk.txt"
 
 # Copy message to clipboard
 echo "$MESSAGE" | pbcopy
@@ -136,10 +154,8 @@ tell application "System Events"
     
     -- If user clicks Yes, send the message and close
     if button returned of confirmResult is "Yes" then
-        -- Click Send button (approximate position based on window)
-        set sendClickX to (item 1 of winPos) + (item 1 of winSize) - 100
-        set sendClickY to (item 2 of winPos) + (item 2 of winSize) - 50
-        do shell script "cliclick c:" & sendClickX & "," & sendClickY
+        -- Press Enter key to send message (more reliable than clicking button)
+        key code 36 -- Return/Enter key
         delay 0.5
         
         -- Press Escape 2 times to close all windows
