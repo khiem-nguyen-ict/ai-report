@@ -1,7 +1,24 @@
 const { chromium } = require("playwright");
 const path = require("path");
+const fs = require("fs");
 
 const USER_DATA_DIR = "./user-data";
+
+// Clean up stale browser lock files to avoid ProcessSingleton errors
+function cleanupStaleBrowserFiles() {
+    const lockFiles = ["SingletonLock", "SingletonSocket", "SingletonCookie"];
+    for (const file of lockFiles) {
+        const filePath = path.join(USER_DATA_DIR, file);
+        try {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`🗑️  Removed stale file: ${file}`);
+            }
+        } catch (err) {
+            console.warn(`⚠️  Could not remove ${file}: ${err.message}`);
+        }
+    }
+}
 
 // ── Timeout / polling config ───────────────────────────────────────────────
 const STREAMING_TIMEOUT_MS = 15 * 60_000;
@@ -25,6 +42,9 @@ async function closeBrowser() {
 // ── Browser / page management ─────────────────────────────────────────────
 
 async function getPage() {
+    // Clean up stale browser lock files before launching
+    cleanupStaleBrowserFiles();
+
     if (_page && !_page.isClosed()) return _page;
 
     _context = await chromium.launchPersistentContext(USER_DATA_DIR, {
