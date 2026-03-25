@@ -49,6 +49,9 @@ echo "===== MESSAGE CONTENT ====="
 echo "$MESSAGE"
 echo "===== END MESSAGE ====="
 
+# Save the MESSAGE to file
+echo "$MESSAGE" > "${SCRIPT_DIR}/../../app-data/kakao-talk.txt"
+
 # Copy message to clipboard
 echo "$MESSAGE" | pbcopy
 
