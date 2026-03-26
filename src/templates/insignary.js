@@ -10,212 +10,253 @@ const reportTitle = `${company} - ${project} / ${client}`;
 // ── TMA Solutions brand design spec (fixed — never changes) ───────────────
 const TMA_BRAND_CSS = `
   /* ── TMA Solutions brand tokens ── */
-  :root {
-    --company-branding-color:      #279DD8;
-    --highlight-color:    #FFCC16;
-    --tma-bg:        #EEF9FF;
-    --tma-card:      #FFFFFF;
-    --tma-text:      #1A1A2E;
-    --tma-muted:     #555555;
-    --tma-border:    #DDE3ED;
-    --tma-row-alt:   #EEF2F8;
-    --tma-font:      Arial, Helvetica, sans-serif;
-  }
+      :root {
+        --company-branding-color: #279dd8;
+        --highlight-color: #ffcc16;
+        --tma-bg: #eef9ff;
+        --tma-card: #ffffff;
+        --tma-text: #1a1a2e;
+        --tma-muted: #555555;
+        --tma-border: #dde3ed;
+        --tma-row-alt: #eef2f8;
+        --tma-font: Arial, Helvetica, sans-serif;
+      }
 
-  /* ── Reset & base ── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: var(--tma-font);
-    font-size: 16px;
-    color: var(--tma-text);
-    background: var(--tma-bg);
-    line-height: 1.6;
-  }
+      /* ── Reset & base ── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--tma-font);
+        font-size: 16px;
+        color: var(--tma-text);
+        background: var(--tma-bg);
+        line-height: 1.6;
+      }
 
-  /* ── Header / banner ── */
-  .report-header {
-    background: var(--company-branding-color);
-    color: #fff;
-    padding: 24px 32px 20px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    border-bottom: 4px solid var(--highlight-color);
-  }
-  .report-header .title-block h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 2px;
-  }
-  .report-header .title-block p {
-    font-size: 14px;
-    opacity: 0.75;
-    letter-spacing: 0.5px;
-  }
+      /* ── Header / banner ── */
+      .report-header {
+        background: var(--company-branding-color);
+        color: #fff;
+        padding: 24px 32px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border-bottom: 4px solid var(--highlight-color);
+      }
+      .report-header .title-block h1 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .report-header .title-block p {
+        font-size: 14px;
+        opacity: 0.75;
+        letter-spacing: 0.5px;
+      }
 
-  /* ── Layout wrapper ── */
-  .report-body {
-    max-width: 860px;
-    margin: 28px auto;
-    padding: 0 20px 40px;
-  }
+      /* ── Layout wrapper ── */
+      .report-body {
+        max-width: 860px;
+        margin: 28px auto;
+        padding: 0 20px 40px;
+      }
 
-  /* ── Section card ── */
-  .section {
-    background: var(--tma-card);
-    border: 1px solid var(--tma-border);
-    border-radius: 6px;
-    margin-bottom: 24px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(27,55,100,.07);
-  }
-  .section-title {
-    background: var(--company-branding-color);
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    padding: 10px 18px;
-    border-left: 4px solid var(--highlight-color);
-  }
-  .section-body { padding: 18px 20px; }
+      /* ── Section card ── */
+      .section {
+        background: var(--tma-card);
+        border: 1px solid var(--tma-border);
+        border-radius: 6px;
+        margin-bottom: 24px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(27, 55, 100, 0.07);
+      }
+      .section-title {
+        background: var(--company-branding-color);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        padding: 10px 18px;
+        border-left: 4px solid var(--highlight-color);
+      }
+      .section-body {
+        padding: 18px 20px;
+      }
 
-  /* ── Task list ── */
-  .task-list { list-style: none; counter-reset: task-counter; }
-  .task-list > li {
-    counter-increment: task-counter;
-    padding: 8px 0 8px 36px;
-    border-bottom: 1px solid var(--tma-border);
-    position: relative;
-  }
-  .task-list > li:last-child { border-bottom: none; }
-  .task-list > li::before {
-    content: counter(task-counter) ".";
-    position: absolute;
-    left: 8px;
-    color: var(--company-branding-color);
-    font-weight: 700;
-    min-width: 24px;
-  }
-  .task-category {
-    font-weight: 700;
-    color: var(--company-branding-color);
-    margin-bottom: 6px;
-    font-size: 15.5px;
-  }
-  .sub-list { list-style: none; padding-left: 16px; margin-top: 4px; }
-  .sub-list li {
+      /* ── Task list ── */
+      .task-list {
+        counter-reset: task-counter;
+      }
+      .task-list > li {
+        counter-increment: task-counter;
+        padding: 8px 0 8px 8px;
+        margin-left: 36px;
+        border-bottom: 1px solid var(--tma-border);
         position: relative;
-        padding: 6px 0 6px 22px;
+      }
+      .task-list > li:last-child {
+        border-bottom: none;
+      }
+      .task-category, .task-list > li {
+        font-weight: 700;
+        color: var(--company-branding-color);
+        margin-bottom: 6px;
+        font-size: 15.5px;
+      }
+      .sub-list {
+        padding-left: 16px;
+        margin-top: 4px;
+        list-style-type: square;
+      }
+      .sub-list li {
+        position: relative;
         margin-bottom: 6px;
         font-size: 15px;
+        font-weight:normal;
         color: var(--tma-text);
-    }
+      }
 
-    .sub-list li::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 14px;
-        width: 8px;
+      /* ── Status badge ── */
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .status-label {
+        font-weight: 700;
+        color: var(--company-branding-color);
+        min-width: 120px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: #fff;
+      }
+      .badge-green {
+        background: #006b3d;
+      }
+      .badge-yellow {
+        background: #ff980e;
+      }
+      .badge-orange {
+        background: #ff681e;
+      }
+      .badge-red {
+        background: #d3212c;
+      }
+
+      /* ── Summary text rows ── */
+      .summary-row {
+        margin-bottom: 10px;
+      }
+      .summary-row strong {
+        color: var(--company-branding-color);
+        display: inline-block;
+        min-width: 90px;
+      }
+      .action-list {
+        padding-left: 20px;
+        margin-top: 4px;
+      }
+      .action-list li {
+        margin-bottom: 4px;
+        font-size: 15px;
+      }
+
+      /* ── HR Table ── */
+      .hr-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+        border-color: transparent;
+      }
+      .hr-table thead tr {
+        background: var(--company-branding-color);
+        color: #fff;
+      }
+      .hr-table thead th {
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        border-right: 1px solid rgba(255, 255, 255, 0.15);
+      }
+      .hr-table thead th:last-child {
+        border-right: none;
+      }
+      .hr-table tbody tr:nth-child(even) {
+        background: var(--tma-row-alt);
+      }
+      .hr-table tbody tr:hover {
+        background: #dde7f5;
+      }
+      .hr-table td {
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--tma-border);
+        vertical-align: middle;
+      }
+      .billable-yes {
+        color: #2e7d32;
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+      .billable-no {
+        color: var(--tma-muted);
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+      .effort-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .effort-bar .bar-track {
+        flex: 1;
+        background: var(--tma-border);
+        border-radius: 4px;
         height: 8px;
-        background-color: var(--highlight-color);
-        border-radius: 50%;
-    }
+        overflow: hidden;
+        min-width: 60px;
+      }
+      .effort-bar .bar-fill {
+        height: 100%;
+        background: var(--highlight-color);
+        border-radius: 4px;
+      }
+      .effort-bar .bar-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--company-branding-color);
+        min-width: 36px;
+        text-align: right;
+      }
 
-  /* ── Status badge ── */
-  .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-  .status-label { font-weight: 700; color: var(--company-branding-color); min-width: 120px; }
-  .badge {
-    display: inline-block;
-    padding: 3px 14px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    color: #fff;
-  }
-  .badge-green  { background: #006B3D; }
-  .badge-yellow  { background: #FF980E; }
-  .badge-orange { background: #FF681E; }
-  .badge-red    { background: #D3212C; }
-
-  /* ── Summary text rows ── */
-  .summary-row { margin-bottom: 10px; }
-  .summary-row strong { color: var(--company-branding-color); display: inline-block; min-width: 90px; }
-  .action-list { padding-left: 20px; margin-top: 4px; }
-  .action-list li { margin-bottom: 4px; font-size: 15px; }
-
-  /* ── HR Table ── */
-  .hr-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  .hr-table thead tr {
-    background: var(--company-branding-color);
-    color: #fff;
-  }
-  .hr-table thead th {
-    padding: 10px 14px;
-    text-align: left;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    border-right: 1px solid rgba(255,255,255,0.15);
-  }
-  .hr-table thead th:last-child { border-right: none; }
-  .hr-table tbody tr:nth-child(even) { background: var(--tma-row-alt); }
-  .hr-table tbody tr:hover { background: #dde7f5; }
-  .hr-table td {
-    padding: 9px 14px;
-    border-bottom: 1px solid var(--tma-border);
-    vertical-align: middle;
-  }
-  .billable-yes {
-    color: #2E7D32;
-    font-weight: 700;
-    font-size: 14px;
-    text-transform: uppercase;
-  }
-  .billable-no {
-    color: var(--tma-muted);
-    font-size: 14px;
-    text-transform: uppercase;
-  }
-  .effort-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .effort-bar .bar-track {
-    flex: 1;
-    background: var(--tma-border);
-    border-radius: 4px;
-    height: 8px;
-    overflow: hidden;
-    min-width: 60px;
-  }
-  .effort-bar .bar-fill {
-    height: 100%;
-    background: var(--highlight-color);
-    border-radius: 4px;
-  }
-  .effort-bar .bar-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--company-branding-color);
-    min-width: 36px;
-    text-align: right;
-  }
-
-  /* ── Footer ── */
-  .report-footer {
-    text-align: center;
-    font-size: 13px;
-    color: var(--tma-muted);
-    padding: 16px;
-    border-top: 2px solid var(--company-branding-color);
-    margin-top: 8px;
-  }
-  .report-footer span { color: var(--company-branding-color); font-weight: 700; }
+      /* ── Footer ── */
+      .report-footer {
+        text-align: center;
+        font-size: 13px;
+        color: var(--tma-muted);
+        padding: 16px;
+        border-top: 2px solid var(--company-branding-color);
+        margin-top: 8px;
+      }
+      .report-footer span {
+        color: var(--company-branding-color);
+        font-weight: 700;
+      }
 `.trim();
 
 // ── Prompt builder ────────────────────────────────────────────────────────

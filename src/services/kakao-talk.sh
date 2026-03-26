@@ -147,23 +147,8 @@ tell application "System Events"
     keystroke "a" using command down
     delay 0.5
     keystroke "v" using command down
-    delay 0.5
     
-    -- Show confirmation dialog
-    set confirmResult to display dialog "Do you want to send this message?" buttons {"Yes", "No"} default button "No" with icon note
-    
-    -- If user clicks Yes, send the message and close
-    if button returned of confirmResult is "Yes" then
-        -- Press Enter key to send message (more reliable than clicking button)
-        key code 36 -- Return/Enter key
-        delay 0.5
-        
-        -- Press Escape 2 times to close all windows
-        key code 53 -- Escape
-        delay 0.3
-        key code 53 -- Escape
-        delay 0.3
-    end if
+    -- End, let the user decise!
 
 end tell
 
