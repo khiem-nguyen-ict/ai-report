@@ -209,7 +209,7 @@ const TMA_BRAND_CSS = `
 
 // ── Prompt builder ────────────────────────────────────────────────────────
 
-function buildPrompt(reportDate, dailyReportText) {
+function buildPrompt(reportDate, dailyReportText, emailSubject) {
   return `You are a professional Project Coordinator working for ${company}.
 
 Below is the raw Daily Report log from a development team's chat.
@@ -270,7 +270,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Summary - ${reportDate}</title>
+  <title>${emailSubject}</title>
   <style>
     /* PASTE THE FULL CSS ABOVE HERE — DO NOT MODIFY */
   </style>
@@ -280,7 +280,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
   <!-- HEADER -->
   <div class="report-header">
     <div class="title-block">
-      <h1>Daily Summary - ${reportDate}</h1>
+      <h1>${emailSubject}</h1>
       <p>${reportTitle}</p>
     </div>
   </div>
@@ -357,8 +357,15 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
 
   <!-- FOOTER -->
   <div class="report-footer">
-    <span>${company}</span> - Daily Report by <span>${author}</span> - ${reportDate}
-  </div>
+  <span>${company}</span> - Daily Report by <strong>${author}</strong> - ${reportDate}
+  <br/>
+  <small>
+  ${emailSubject}
+  </small>
+  <small style="color: var(--tma-muted);">
+    Locally developed tool. No third-party automation services used. Secure and private by design.
+  </small>
+</div>
 
 </body>
 </html>

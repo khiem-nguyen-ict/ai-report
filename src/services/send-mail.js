@@ -34,42 +34,6 @@ if (TO_RECIPIENTS === "") {
 
 const CC_RECIPIENTS = process.env.CC_RECIPIENTS || "";
 
-function getCurrentWeekAndSprint(inputDate = new Date()) {
-  const startDateStr = process.env.PROJECT_START_DATE;
-  const weeksPerSprint =
-    parseInt(process.env.NUMBER_OF_WEEKS_PER_SPRINT, 10) || 2;
-  const startSprint = parseInt(process.env.START_SPRINT, 10) || 0;
-  const startWeek = parseInt(process.env.START_WEEK, 10) || 1;
-
-  if (!startDateStr) {
-    throw new Error("PROJECT_START_DATE is not defined in .env");
-  }
-
-  const startDate = new Date(startDateStr);
-  const currentDate = new Date(inputDate);
-
-  if (isNaN(startDate.getTime())) {
-    throw new Error("Invalid PROJECT_START_DATE format. Use yyyy/mm/dd");
-  }
-
-  // Normalize time
-  startDate.setHours(0, 0, 0, 0);
-  currentDate.setHours(0, 0, 0, 0);
-
-  const diffMs = currentDate - startDate;
-
-  if (diffMs < 0) {
-    return { week: 0, sprint: 0 };
-  }
-
-  const week = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + startWeek;
-
-  // 👉 Sprint starts from 0
-  const sprint = Math.floor((week - startWeek) / weeksPerSprint) + startSprint;
-
-  return { week, sprint };
-}
-
 function loadHtmlBody(target) {
   if (!target) {
     throw new Error("HTML file path not provided.");
@@ -495,7 +459,7 @@ async function composeAndSend(
   browser,
   recipients,
   cc_recipients,
-  date,
+  emailSubject,
   resolvedHtmlFilePath,
 ) {
   // Click "New Message" button
@@ -507,11 +471,7 @@ async function composeAndSend(
     "div.ZToolbarButton:has-text('New Message')",
     "td.ZToolbarButton:has-text('New Message')",
   ];
-
-  const r = getCurrentWeekAndSprint(date);
-
-  const emailSubject = `[${process.env.COMPANY}][${process.env.CLIENT}] ${process.env.PROJECT} - Daily Report on ${date} - Week #${r.week}, Sprint #${r.sprint}`;
-
+  
   let clicked = false;
   for (const sel of newMsgSelectors) {
     const btn = page.locator(sel).first();
@@ -673,7 +633,7 @@ function promptSendConfirmation() {
   });
 }
 
-async function run(date, reportFile) {
+async function run(emailSubject, reportFile) {
   console.log("=== Zimbra Classic Sender (Playwright) ===\n");
 
   let htmlBody, resolvedFilePath;
@@ -738,7 +698,7 @@ async function run(date, reportFile) {
         browser,
         TO_RECIPIENTS,
         CC_RECIPIENTS,
-        date,
+        emailSubject,
         resolvedFilePath,
       );
       console.log(`  ✅ Email sent successfully!\n`);
