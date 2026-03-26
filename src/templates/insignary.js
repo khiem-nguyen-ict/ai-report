@@ -366,7 +366,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
 
   <!-- FOOTER -->
   <div class="report-footer">
-  <span>${company}</span> - Daily Report by <strong>${author}</strong> - ${reportDate}
+  <span>${company}</span> - Prepared by <strong>${author}</strong> - ${reportDate}
   <br/>
   <small>
   ${emailSubject}
