@@ -106,12 +106,23 @@ const TMA_BRAND_CSS = `
   }
   .sub-list { list-style: none; padding-left: 16px; margin-top: 4px; }
   .sub-list li {
-    padding: 3px 0 3px 14px;
-    border-left: 2px solid var(--highlight-color);
-    margin-bottom: 4px;
-    font-size: 15px;
-    color: var(--tma-text);
-  }
+        position: relative;
+        padding: 6px 0 6px 22px;
+        margin-bottom: 6px;
+        font-size: 15px;
+        color: var(--tma-text);
+    }
+
+    .sub-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 14px;
+        width: 8px;
+        height: 8px;
+        background-color: var(--highlight-color);
+        border-radius: 50%;
+    }
 
   /* ── Status badge ── */
   .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -327,30 +338,28 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
     <!-- SECTION 3: HR TABLE -->
     <div class="section">
       <div class="section-title">Human Resources</div>
-      <div class="section-body">
         <table class="hr-table">
-          <thead>
+            <thead>
             <tr>
-              <th>No.</th><th>Name</th><th>Role</th><th>Billable</th><th>Effort</th>
+                <th style="border-left: 4px solid var(--highlight-color);">No.</th><th>Name</th><th>Role</th><th>Billable</th><th>Effort</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             <!-- For each person: -->
             <tr>
-              <td>[N]</td>
-              <td>[Name]</td>
-              <td>[Role]</td>
-              <td><span class="billable-yes">Yes</span></td>
-              <td>
+                <td>[N]</td>
+                <td>[Name]</td>
+                <td>[Role]</td>
+                <td><span class="billable-yes">Yes</span></td>
+                <td>
                 <div class="effort-bar">
-                  <div class="bar-track"><div class="bar-fill" style="width:[X]%"></div></div>
-                  <span class="bar-label">[X]%</span>
+                    <div class="bar-track"><div class="bar-fill" style="width:[X]%"></div></div>
+                    <span class="bar-label">[X]%</span>
                 </div>
-              </td>
+                </td>
             </tr>
-          </tbody>
+            </tbody>
         </table>
-      </div>
     </div>
 
   </div><!-- /.report-body -->
