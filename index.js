@@ -13,57 +13,57 @@ const fs = require("fs");
 // ── Main pipeline ─────────────────────────────────────────────────────────
 
 async function main() {
-  const { run: runTeams } = require("./src/services/ms-team");
-  await runTeams();
+    const { run: runTeams } = require("./src/services/ms-team");
+    await runTeams();
 
-  const {
-    extractLastDateFromMessages,
-    getReportTitle,
-  } = require("./src/utils/index");
-  const reportDate = extractLastDateFromMessages(
-    path.join(__dirname, "app-data/messages.json"),
-  );
-  const reportFilename = path.join(
-    __dirname,
-    `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
-  );
-  const emailSubject = getReportTitle(reportDate);
-  // Email subject is not used in Gemini implementation but kept for API compatibility
-  console.log("📧 Email subject:", emailSubject);
+    const {
+        extractLastDateFromMessages,
+        getReportTitle,
+    } = require("./src/utils/index");
+    const reportDate = extractLastDateFromMessages(
+        path.join(__dirname, "app-data/messages.json"),
+    );
+    const reportFilename = path.join(
+        __dirname,
+        `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
+    );
+    const emailSubject = getReportTitle(reportDate);
+    // Email subject is not used in Gemini implementation but kept for API compatibility
+    console.log("📧 Email subject:", emailSubject);
 
-  const dailyReportText = fs.readFileSync(
-    path.join(__dirname, "app-data/messages.txt"),
-    "utf-8",
-  );
-  if (!dailyReportText.trim()) {
-    console.info("No message log on MS Team found. Exit!");
-    process.exit(1);
-  }
+    const dailyReportText = fs.readFileSync(
+        path.join(__dirname, "app-data/messages.txt"),
+        "utf-8",
+    );
+    if (!dailyReportText.trim()) {
+        console.info("No message log on MS Team found. Exit!");
+        process.exit(1);
+    }
 
-  const { buildPrompt } = require("./src/templates/insignary");
-  const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
-  fs.writeFileSync(
-    path.join(__dirname, "app-data/prompt_sent.txt"),
-    prompt,
-    "utf-8",
-  );
+    const { buildPrompt } = require("./src/templates/insignary");
+    const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
+    fs.writeFileSync(
+        path.join(__dirname, "app-data/prompt_sent.txt"),
+        prompt,
+        "utf-8",
+    );
 
-  if (process.env.AI_ENGINE === "GEMINI") {
-    const { sendToGeminiAndDownload } = require("./src/services/gemini");
-    await sendToGeminiAndDownload(prompt, reportFilename);
-  } else if (process.env.AI_ENGINE === "CLAUDE") {
-    const { sendToClaudeAndDownload } = require("./src/services/claude");
-    await sendToClaudeAndDownload(prompt, reportFilename);
-  } else {
-    console.error("No AI engine configurated. Abort");
-    process.exit(1);
-  }
+    if (process.env.AI_ENGINE === "GEMINI") {
+        const { sendToGeminiAndDownload } = require("./src/services/gemini");
+        await sendToGeminiAndDownload(prompt, reportFilename);
+    } else if (process.env.AI_ENGINE === "CLAUDE") {
+        const { sendToClaudeAndDownload } = require("./src/services/claude");
+        await sendToClaudeAndDownload(prompt, reportFilename);
+    } else {
+        console.error("No AI engine configurated. Abort");
+        process.exit(1);
+    }
 
-  const { run } = require("./src/services/send-mail");
-  await run(emailSubject, reportFilename);
+    const { run } = require("./src/services/send-mail");
+    await run(emailSubject, reportFilename);
 }
 
 main().catch((error) => {
-  console.error(error);
-  process.exit(1);
+    console.error(error);
+    process.exit(1);
 });

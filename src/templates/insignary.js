@@ -340,7 +340,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
   <div class="report-body">
 
     <!-- SECTION 1: TASK LIST -->
-    <div class="section">
+    <div class="section" id="task-list">
       <div class="section-title">Task Progress</div>
       <div class="section-body">
         <ol class="task-list">
@@ -348,7 +348,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
           <li>
             <div class="task-category">[Category Name]</div>
             <ul class="sub-list">
-              <li>[Sub-task description] ([On-Going / Done]). [Expected Date if any]</li>
+              <li>[Sub-task description as raw text] ([On-Going / Done]). [Expected Date if any]</li>
             </ul>
           </li>
           <!-- ... continue for all tasks ... -->
@@ -357,7 +357,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
     </div>
 
     <!-- SECTION 2: SUMMARY -->
-    <div class="section">
+    <div class="section" id="summary">
       <div class="section-title">Daily Summary</div>
       <div class="section-body">
         <div class="status-row">
@@ -377,7 +377,7 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
     </div>
 
     <!-- SECTION 3: HR TABLE -->
-    <div class="section">
+    <div class="section" id="hr-table">
       <div class="section-title">Human Resources</div>
         <table class="hr-table">
             <thead>
