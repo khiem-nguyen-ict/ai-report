@@ -14,7 +14,7 @@ const TMA_BRAND_CSS = `
         --company-branding-color: #279dd8;
         --highlight-color: #ffcc16;
         --tma-bg: #eef9ff;
-        --tma-card: #ffffff;
+        --tma-card: #eef9ff;
         --tma-text: #1a1a2e;
         --tma-muted: #555555;
         --tma-border: #dde3ed;
@@ -34,7 +34,6 @@ const TMA_BRAND_CSS = `
         font-family: var(--tma-font);
         font-size: 16px;
         color: var(--tma-text);
-        background: var(--tma-bg);
         line-height: 1.6;
       }
 
