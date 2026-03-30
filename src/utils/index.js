@@ -39,10 +39,21 @@ function extractLastDateFromMessages(
 
 function getCurrentWeekAndSprint(inputDate = new Date()) {
   const startDateStr = process.env.PROJECT_START_DATE;
+  console.log(
+    "📅 Calculating week and sprint based on PROJECT_START_DATE:",
+    startDateStr,
+  );
   const weeksPerSprint =
     parseInt(process.env.NUMBER_OF_WEEKS_PER_SPRINT, 10) || 2;
   const startSprint = parseInt(process.env.START_SPRINT, 10) || 0;
+  console.log(
+    "⚙️  Configuration - weeksPerSprint:",
+    weeksPerSprint,
+    "startSprint:",
+    startSprint,
+  );
   const startWeek = parseInt(process.env.START_WEEK, 10) || 1;
+  console.log("⚙️  Configuration - startWeek:", startWeek);
 
   if (!startDateStr) {
     throw new Error("PROJECT_START_DATE is not defined in .env");
@@ -50,22 +61,39 @@ function getCurrentWeekAndSprint(inputDate = new Date()) {
 
   const startDate = new Date(startDateStr);
   const currentDate = new Date(inputDate);
+  console.log(
+    "📅 Current date for calculation:",
+    currentDate.toISOString().split("T")[0],
+  );
 
   if (isNaN(startDate.getTime())) {
     throw new Error("Invalid PROJECT_START_DATE format. Use yyyy/mm/dd");
   }
 
-  // Normalize time
-  startDate.setHours(0, 0, 0, 0);
-  currentDate.setHours(0, 0, 0, 0);
+  // Normalize to UTC midnight to avoid timezone issues
+  const startUtc = Date.UTC(
+    startDate.getFullYear(),
+    startDate.getMonth(),
+    startDate.getDate(),
+  );
+  const currentUtc = Date.UTC(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    currentDate.getDate(),
+  );
 
-  const diffMs = currentDate - startDate;
+  const diffMs = currentUtc - startUtc;
 
   if (diffMs < 0) {
     return { week: 0, sprint: 0 };
   }
 
-  const week = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + startWeek;
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  const week = Math.floor(diffDays / 7) + startWeek;
+  console.log("Number of days is ", diffDays);
+  console.log("Number of weeks is ", Math.floor(diffDays / 7));
+  console.log("Date diffs = ", diffMs, "ms");
+
   const sprint = Math.floor((week - startWeek) / weeksPerSprint) + startSprint;
 
   return { week, sprint };
