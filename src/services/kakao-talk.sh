@@ -4,6 +4,10 @@
 # brew install cliclick is needed before running
 # Also allow the permission for the app
 
+# Set UTF-8 encoding for proper emoji/unicode handling
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
 # Get today's date (format: YYYY-MM-DD)
 TODAY=$(date +"%Y-%m-%d")
 
@@ -75,8 +79,8 @@ if ! echo "$WRITTEN_CONTENT" | grep -q "$TODAY"; then
 fi
 echo "Successfully wrote new data to kakao-talk.txt"
 
-# Copy message to clipboard
-echo "$MESSAGE" | pbcopy
+# Copy message to clipboard with UTF-8 encoding
+printf "%s" "$MESSAGE" | pbcopy
 
 # Open KakaoTalk
 open -a "KakaoTalk"
