@@ -537,11 +537,11 @@ async function composeAndSend(
 
   if ((await editorBody.count()) > 0) {
     await editorBody.click();
-    await page.waitForTimeout(300);
-    await editorBody.press("Meta+a"); // Clear old content
-    await page.waitForTimeout(200);
-    await editorBody.press("Meta+v"); // Paste from clipboard
     await page.waitForTimeout(800);
+    await editorBody.press("Meta+a"); // Clear old content
+    await page.waitForTimeout(600);
+    await editorBody.press("Meta+v"); // Paste from clipboard
+    await page.waitForTimeout(1000);
     console.log("  ✍️  Pasted content into Zimbra editor");
     await editorBody.press("Meta+ArrowUp");
   } else {
