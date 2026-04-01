@@ -12,7 +12,7 @@ const ADDITIONAL_MS_TEAM_GROUP_NAME =
 const TIMEOUT = 30_000; // ⏱️ 30s for each click/list action
 const SHELL_TIMEOUT = 120_000; // Teams SPA loads slowly / many network connections
 /** Maximum number of scroll ups to lazy-load more messages for the same day (enough for ~1 day of chat). */
-const MAX_CHAT_SCROLL_UP = parseInt(process.env.MAX_CHAT_SCROLL_UP, 10) || 5;
+const MAX_CHAT_SCROLL_UP = parseInt(process.env.MAX_CHAT_SCROLL_UP, 10) || 10;
 
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
