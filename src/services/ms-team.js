@@ -470,6 +470,10 @@ async function scrollThreadAndCollectLastDayMessages(page) {
     }
   };
 
+  // Scroll to top first to ensure the first message is fully rendered in DOM
+  await scrollChatPaneTowardStart(page);
+  await page.waitForTimeout(550);
+
   await mergeBatch();
 
   for (let pass = 0; pass < MAX_CHAT_SCROLL_UP; pass++) {
