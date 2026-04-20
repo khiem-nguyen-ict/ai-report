@@ -29,7 +29,7 @@ async function getPage() {
     _context = await chromium.launchPersistentContext(USER_DATA_DIR, {
         headless: false,
         channel: "chrome",
-        args: ["--disable-blink-features=AutomationControlled"],
+        args: ["--disable-blink-features=AutomationControlled", "--disable-web-security"],
         viewport: { width: 1240, height: 800 },
     });
 
