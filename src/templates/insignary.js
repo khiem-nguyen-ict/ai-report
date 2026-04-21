@@ -295,7 +295,9 @@ STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0�
     • Gioi Nguyen   — Technical Leader, Effort: max 50%
     • Toan Huynh    — AI Developer, Effort: always 0% (Avatar)
     • Long Le       — derive Role from log, Billable: Yes
-- All other people found in the log come after, Billable is No, and leave this column value empty. If "Dung Dao" is existed, his Role is always "Advisor"
+- All other people found in the log come after, Billable is No, and leave this column value empty. 
+- If "Dung Dao" is existed, his Role is always "Advisor"
+- If Lê Trà My Trần is existed, her Role is always "PM / QA / Coordinator"
 - Effort: calculated from chat volume, proactiveness, and task complexity visible in the log.
 - Do NOT include any Effort Rationale or explanation column.
 
