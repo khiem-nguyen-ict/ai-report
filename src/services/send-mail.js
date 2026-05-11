@@ -523,7 +523,7 @@ async function composeAndSend(
   }
 
   await htmlPage.keyboard.press("Meta+c");
-  await htmlPage.waitForTimeout(1000);
+  await htmlPage.waitForTimeout(2000);
   console.log("  📋 Executed Cmd+A + Cmd+C on HTML content");
 
   // Step 3: Close HTML tab

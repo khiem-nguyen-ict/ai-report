@@ -455,6 +455,8 @@ async function scrollChatPaneTowardStart(page) {
  */
 async function scrollThreadAndCollectLastDayMessages(page) {
   await waitForMessagePane(page);
+  await page.keyboard.press("End");
+  await page.waitForTimeout(2000);
 
   const seen = new Set();
   const merged = [];
