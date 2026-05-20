@@ -161,7 +161,7 @@ async function run() {
 
   // --- Chat → open correct group by name ---
   await openGroupChat(page, MS_TEAM_GROUP_NAME);
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(5000);
 
   // --- Scroll thread to load history, collect messages and keep only the latest day ---
   const result = await scrollThreadAndCollectLastDayMessages(page);
@@ -171,7 +171,7 @@ async function run() {
   if (ADDITIONAL_MS_TEAM_GROUP_NAME) {
     // --- Chat → open additional correct group by name ---
     await openGroupChat(page, ADDITIONAL_MS_TEAM_GROUP_NAME);
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(5000);
 
     // --- Scroll thread to load history, collect messages ---
     const additionalResult = await scrollThreadAndCollectLastDayMessages(page);
@@ -456,7 +456,7 @@ async function scrollChatPaneTowardStart(page) {
 async function scrollThreadAndCollectLastDayMessages(page) {
   await waitForMessagePane(page);
   await page.keyboard.press("End");
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(5000);
 
   const seen = new Set();
   const merged = [];
