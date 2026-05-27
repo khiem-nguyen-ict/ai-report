@@ -76,8 +76,11 @@ async function waitForGeminiResponseComplete(page) {
         const is3DotVisible = svg
           ? window.getComputedStyle(svg).contentVisibility === "visible"
           : false;
+
+        // This means the response is ready completly!
+        const isReady = document.querySelector("message-actions") != null;
         
-        if (!is3DotVisible) {
+        if (!is3DotVisible && isReady) {
           const r = document.querySelectorAll("structured-content-container");
           if (r && r.length > 0) {
             const textElem = r[r.length - 1];
