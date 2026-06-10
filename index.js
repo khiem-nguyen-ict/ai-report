@@ -12,58 +12,70 @@ const fs = require("fs");
 
 // ── Main pipeline ─────────────────────────────────────────────────────────
 
-async function main() {
-    const { run: runTeams } = require("./src/services/ms-team");
-    await runTeams();
-
-    const {
-        extractLastDateFromMessages,
-        getReportTitle,
-    } = require("./src/utils/index");
-    const reportDate = extractLastDateFromMessages(
-        path.join(__dirname, "app-data/messages.json"),
+async function main(notifyOnly = false) {
+  if (notifyOnly) {
+    console.log(
+      "🚀 Running in notify-only mode. Only sending reminder to MS Teams.",
     );
-    const reportFilename = path.join(
-        __dirname,
-        `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
-    );
-    const emailSubject = getReportTitle(reportDate);
-    // Email subject is not used in Gemini implementation but kept for API compatibility
-    console.log("📧 Email subject:", emailSubject);
+    const { sendReminder } = require("./src/services/ms-team");
+    await sendReminder();
+    return;
+  }
 
-    const dailyReportText = fs.readFileSync(
-        path.join(__dirname, "app-data/messages.txt"),
-        "utf-8",
-    );
-    if (!dailyReportText.trim()) {
-        console.info("No message log on MS Team found. Exit!");
-        process.exit(1);
-    }
+  const { run: runTeams } = require("./src/services/ms-team");
+  await runTeams();
 
-    const { buildPrompt } = require("./src/templates/insignary");
-    const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
-    fs.writeFileSync(
-        path.join(__dirname, "app-data/prompt_sent.txt"),
-        prompt,
-        "utf-8",
-    );
+  const {
+    extractLastDateFromMessages,
+    getReportTitle,
+  } = require("./src/utils/index");
+  const reportDate = extractLastDateFromMessages(
+    path.join(__dirname, "app-data/messages.json"),
+  );
+  const reportFilename = path.join(
+    __dirname,
+    `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
+  );
+  const emailSubject = getReportTitle(reportDate);
+  // Email subject is not used in Gemini implementation but kept for API compatibility
+  console.log("📧 Email subject:", emailSubject);
 
-    if (process.env.AI_ENGINE === "GEMINI") {
-        const { sendToGeminiAndDownload } = require("./src/services/gemini");
-        await sendToGeminiAndDownload(prompt, reportFilename);
-    } else if (process.env.AI_ENGINE === "CLAUDE") {
-        const { sendToClaudeAndDownload } = require("./src/services/claude");
-        await sendToClaudeAndDownload(prompt, reportFilename);
-    } else {
-        console.error("No AI engine configurated. Abort");
-        process.exit(1);
-    }
+  const dailyReportText = fs.readFileSync(
+    path.join(__dirname, "app-data/messages.txt"),
+    "utf-8",
+  );
+  if (!dailyReportText.trim()) {
+    console.info("No message log on MS Team found. Exit!");
+    process.exit(1);
+  }
 
-    const { run } = require("./src/services/send-mail");
-    await run(emailSubject, reportFilename);
+  const { buildPrompt } = require("./src/templates/insignary");
+  const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
+  fs.writeFileSync(
+    path.join(__dirname, "app-data/prompt_sent.txt"),
+    prompt,
+    "utf-8",
+  );
+
+  if (process.env.AI_ENGINE === "GEMINI") {
+    const { sendToGeminiAndDownload } = require("./src/services/gemini");
+    await sendToGeminiAndDownload(prompt, reportFilename);
+  } else if (process.env.AI_ENGINE === "CLAUDE") {
+    const { sendToClaudeAndDownload } = require("./src/services/claude");
+    await sendToClaudeAndDownload(prompt, reportFilename);
+  } else {
+    console.error("No AI engine configurated. Abort");
+    process.exit(1);
+  }
+
+  const { run } = require("./src/services/send-mail");
+  await run(emailSubject, reportFilename);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exit(1);
+const notifyOnlyArg = process.argv[2];
+const notifyOnly = process.argv[2].includes("--notify");
+
+main(notifyOnly).catch((error) => {
+  console.error(error);
+  process.exit(1);
 });

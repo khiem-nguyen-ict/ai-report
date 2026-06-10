@@ -280,16 +280,17 @@ STEP 2 — Organize tasks under those categories:
 - Keep any Expectation Date mentioned.
 - Remove all names / assignee mentions.
 - Skip categories with no tasks.
-- Ignore casual chat, only parse work content.
-- English only.
+- Ignore casual chat, only parse work content. If a message contains both work content and casual chat, only extract the work content as a task.
+- English only — if the log contains other languages, translate them to English and summarize as a single task under the right category.
+-  Similar tasks can be grouped as in a single task with the summarized description, but do NOT list them as separate tasks. For example, if there are 3 similar tasks about "Data Cleaning", you can group them into 1 task: "Data Cleaning for [X], [Y], [Z] datasets". But if they are different tasks, even if they are in the same category, list them separately.
 
 STEP 3 — Short summary section:
 1. Overall Status: Green / Yellow / Orange / Red. (Green = OK, Yellow = concern or warning, Orange = important warning, Red = critical). Use Yello/Red/Orange only for blockers impacting progress.
-2. Summary: 1–2 sentences about the day.
-3. Issues: "None" or 1–2 sentences.
+2. Summary: 1-2 sentences about the day.
+3. Issues: "None" or 1-2 sentences.
 4. Actions: Bullet points for next steps.
 
-STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0–100%).
+STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0-100%).
 - Fixed people at top (Billable = Yes):
     • Khiem Nguyen — Project Manager, Effort is not more than 50%
     • Gioi Nguyen   — Technical Leader, Effort: max 50%
@@ -367,8 +368,8 @@ Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
           <!-- Use badge-green, badge-yellow, badge-orange, or badge-red based on status -->
           <span class="badge badge-[green|yellow|orange|red]">[Green / Yellow / Orange / Red]</span>
         </div>
-        <div class="summary-row"><strong>Summary:</strong> [1–2 sentence summary]</div>
-        <div class="summary-row"><strong>Issues:</strong> [None or 1–2 sentences]</div>
+        <div class="summary-row"><strong>Summary:</strong> [1-2 sentence summary]</div>
+        <div class="summary-row"><strong>Issues:</strong> [None or 1-2 sentences]</div>
         <div class="summary-row">
           <strong>Actions:</strong>
           <ul class="action-list">

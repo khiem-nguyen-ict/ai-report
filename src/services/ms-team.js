@@ -18,6 +18,162 @@ function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const messages = [
+  "Ai chưa gửi DR thì gửi giúp anh nhé.",
+  "Nhắc nhẹ cái daily report nha ae 😄",
+  "Cho anh xin DR với.",
+  "Hình như còn thiếu vài cái report 🤔",
+  "Mọi người nhớ update daily nha.",
+  "DR đâu rồi ta 😄",
+  "Ai còn nợ report ko?",
+  "Anh đi collect daily đây 😆",
+  "Cho anh xin ít tín hiệu daily report từ team.",
+  "Daily report nha mọi người.",
+  "Đừng để anh phải đi săn DR từng người 😅 các chú ơi",
+  "Còn thiếu report của ai đó không 😁",
+  "Gửi DR giúp anh nha.",
+  "Ae nhớ daily nhé!",
+  "Có vẻ hôm nay DR hơi ít 🤣",
+  "Report đi cả nhà.",
+  "Ai chưa gửi report thì gửi luôn nha.",
+  "Nhắc nhẹ daily repoirt thôi chứ chưa réo tên đâu 😄",
+  "DR DR DR 📢",
+  "Cho anh xin update cuối ngày.",
+  "Mọi người gửi report giúp anh.",
+  "Anh đang tổng hợp daily report, ai chưa gửi thì tranh thủ nha.",
+  "Daily đâu mấy chú thým 😆",
+  "Có ai quên report không ta?",
+  "Có chú nào quên report hông 😁",
+  "Nhớ gửi DR nha team.",
+  "Nhắc phát daily report rồi anh lặn tiếp chờ đây.",
+  "Report giúp anh nhé.",
+  "Anh đi ngang thấy thiếu vài cái daily thì phải 😄",
+  "Còn thiếu DR hông?",
+  "Gửi report để anh còn tổng hợp 😅",
+  "Có ai đang trốn daily ko?",
+  "Cho anh xin daily report với nha.",
+  "Báo cáo tình hình chiến sự daily report đi ae 😁",
+  "DR hôm nay sao yên ắng vậy...",
+  "Daily nha mng.",
+  "Có report chưa mọi người?",
+  "Anh xin một chiếc DR.",
+  "Gửi report giúp anh nha.",
+  "Daily report chưa thấy về tới nơi đủ 😄",
+  "Ai chưa gửi thì tranh thủ nha!",
+  "Còn sống thì gửi DR 😆",
+  "Cho anh xin vài dòng update daily.",
+  "Hình như DR đang bị kẹt network 😁...",
+  "Report đi team ơi....",
+  "Đến giờ thu hoạch DR rồi nện đi.",
+  "Ai còn nhớ thì gửi report 😄",
+  "Reminder thân thiện - daily report.",
+  "Daily report nha các đồng chí.",
+  "Anh đang đợi DR.",
+  "Gửi daily trước khi quên nha.",
+  "Mọi người update giúp anh.",
+  "Nhắc nhẹ lần 1 daily report 😄",
+  "Nhắc nhẹ lần 1.5 DR 😆",
+  "Nhắc nhẹ lần 1.75 daily report má ơi 🤣",
+  "Chưa thấy DR xuất hiện ta?",
+  "Cho anh xin report cuối ngày.",
+  "Có gì update thì bỏ vô DR luôn nha.",
+  "Ai còn nợ daily report ta?",
+  "Anh đang gom report nha 😄",
+  "Đừng để anh tag tên nha 😁",
+  "Daily report thôi mọi người.",
+  "Một chiếc report có giá trị hơn ngàn lời nói 😆",
+  "DR giúp anh nha ae.",
+  "Còn thiếu vài report...",
+  "Anh chưa đủ dữ liệu để chém gió với sếp 😅",
+  "Gửi daily giúp anh với.",
+  "Report report report.",
+  "Ai chưa gửi DR thì tranh thủ nha.",
+  "Cho anh xin cái daily.",
+  "Hôm nay team hơi im - report 😄",
+  "Anh vẫn đứng đây đợi report từ sáng tới giờ 😆",
+  "Có vẻ DR đang trên đường tới???.",
+  "Mọi người nhớ update daily nha nha.",
+  "Reminder tự động nhưng nỗi đau là thật 🤣",
+  "Daily report chưa thấy đâu.",
+  "Anh collect DR như collect Pokemon 😄",
+  "Cho anh xin update cuối ngày với.",
+  "Report đi ae ơi.",
+  "Ai chưa gửi daily thì gửi giúp anh.",
+  "DR đâu các thým ơi 😆",
+  "Anh đang đợi đủ bộ sưu tập report nghen.",
+  "Một phút gửi DR, hạnh phúc cả team 😄",
+  "Daily report nha mấy chú gì đó ơi.",
+  "Cho anh xin tình hình hôm nay.",
+  "Hình như report còn thiếu ai đó 😁",
+  "Report để anh còn tổng hợp nha.",
+  "DR tới công chuyện rồi 😆",
+  "Mọi người nhớ gửi report nhé.",
+  "Anh ghé xin cái daily cái nghen.",
+  "Còn thiếu DR hông?",
+  "Daily report giúp anh.",
+  "Ai chưa gửi tự giác nha 😄",
+  "Report chưa các bạn ơi.",
+  "Cho anh xin vài dòng report.",
+  "đang đợi DR 😆",
+  "Dailyyyyy 😁",
+  "DR plz 😄",
+  "Report nha team ❤️",
+  "DR ơi DR ở đâu rồi",
+  "mọi ng nhớ báo cáo nha, anh đang ngồi chờ đây 🪑",
+  "hôm nay daily report sao im re vậy ta",
+  "ae ơi daily report chứ không phải daily silence",
+  "Gửi DR đi thì anh mới biết hôm nay team còn sống không 🫀",
+  "report report, anh đang gõ cửa từng nhà đây",
+  "chưa thấy DR của mấy bạn nào đó lượn về 🪁",
+  "daily report nha, ko cần dài chỉ cần có",
+  "anh xin cái DR nha, tự nguyện thì đỡ anh phải tag",
+  "có bạn nào đang soạn DR không hay anh ngồi đợi vô ích 🫠",
+  "ae nhớ daily nha, sếp hỏi anh không có gì trả lời đâu",
+  "DR đâu mấy fen 📭",
+  "hình như một vài bạn đang test xem anh có nhớ nhắc không",
+  "anh nhắc vì thương chứ không phải réo nha 🫶",
+  "chưa có DR của mọi người, anh ngồi đây refresh liên tục",
+  "daily reprot nha ae (đánh máy nhanh quá typo rồi)",
+  "gửi DR đi cho ấm lòng anh với 🔥",
+  "mấy chú ơi daily đâu rồi",
+  "anh đang tổng hợp mà thiếu mấy chỗ trống",
+  "1 cái DR = 1 nụ cười từ anh 🫡",
+  "Ai chưa gửi dr thì gửi mau kẻo muộn",
+  "dr dr dr... anh gọi hoài sao không thấy về",
+  "Thân gửi ae, xin một chiếc report ạ 🙏",
+  "hôm nay thiếu report của ai ta, anh ngó qua thấy thiếu thiếu",
+  "daily report - nhắc thôi chứ anh không réo tên lần này 🔕",
+  "ae gửi dr đi rồi tắt máy cho đàng hoàng",
+  "tờ report của bạn đang trống, hãy điền vào 📝",
+  "mấy bạn ơi cho anh xin dr, chat tin nhắn",
+  "DR collect đủ bộ mới về ăn cơm được",
+  "thấy dr về một ít, còn thiếu một ít nữa 🧩",
+  "ae nhớ daily nha nha nha",
+  "gửi report trước khi anh tag tên nha",
+  "sắp hết giờ rồi, dr chưa về đủ ⏳",
+  "daily đâu mấy đứa, anh hỏi nhẹ thôi",
+  "anh chờ dr như chờ shipper 📦",
+  "report đi bà con ơi, anh cần tổng hợp",
+  "ai còn nợ anh cái DR không ta 🗂️",
+  "Dailyyyyyyy anh nhắc lần cuối trước khi tag",
+  "dr hôm nay đến chậm, anh lo quá",
+  "mọi người gửi daily report nha, anh đang gom từ từ đây 🧺",
+  "mấy bạn ơi update tình hình cho anh với",
+  "chưa thấy đủ dr nên anh chưa về",
+  "cho anh xin cái report, cảm ơn trước nha",
+  "daily report - nhắn nhẹ thôi không phải cấp cứu 🚑",
+  "ae ơi còn thiếu vài dr, tự biết nộp nha",
+  "anh đang gom dr, bạn nào chưa gửi thì gửi luôn đi",
+  "dr đâu bạn ơi anh ngóng 🦭",
+  "cần thêm vài report nữa là đủ, ae ráng nốt nha",
+  "update ngày hôm nay cho anh với nha, dr thôi 📡",
+  "ae đừng để anh về tay không nha, gửi dr giùm",
+];
+
+function randomMessage() {
+  return messages[Math.floor(Math.random() * messages.length)];
+}
+
 /** Chat button on the rail (Teams work + personal, UI changes data-tid depending on version). */
 function chatNavLocator(page) {
   return page
@@ -96,7 +252,7 @@ async function clickPersonalTenantMenuIfShown(page, waitMs = 25_000) {
   return false;
 }
 
-async function run() {
+async function openMSTeamWebBrowser() {
   const slowMo = Number(process.env.PLAYWRIGHT_SLOWMO || "300");
   const context = await chromium.launchPersistentContext(PROFILE_DIR, {
     headless: false,
@@ -158,10 +314,18 @@ async function run() {
       .catch(() => {});
     throw e;
   }
+  return { context, page };
+}
+
+/**
+ * Collect chat log from the specified group chat, print to terminal and save to files.
+ */
+async function run() {
+  const { context, page } = await openMSTeamWebBrowser();
 
   // --- Chat → open correct group by name ---
   await openGroupChat(page, MS_TEAM_GROUP_NAME);
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
 
   // --- Scroll thread to load history, collect messages and keep only the latest day ---
   const result = await scrollThreadAndCollectLastDayMessages(page);
@@ -171,7 +335,7 @@ async function run() {
   if (ADDITIONAL_MS_TEAM_GROUP_NAME) {
     // --- Chat → open additional correct group by name ---
     await openGroupChat(page, ADDITIONAL_MS_TEAM_GROUP_NAME);
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(3000);
 
     // --- Scroll thread to load history, collect messages ---
     const additionalResult = await scrollThreadAndCollectLastDayMessages(page);
@@ -509,7 +673,28 @@ function filterMessagesByDate(messages, targetDayStart) {
   });
 }
 
-module.exports = { run };
+/**
+ * Send reminder message to the group chat to remind the team with a random message.
+ */
+async function sendReminder() {
+  const { context, page } = await openMSTeamWebBrowser();
+
+  // --- Chat → open correct group by name ---
+  await openGroupChat(page, MS_TEAM_GROUP_NAME);
+  await page.waitForTimeout(3000);
+
+  // Send a random reminder message
+  const message = randomMessage();
+  await page.keyboard.type(message, { delay: 100 });
+  await page.keyboard.press("Enter");
+  console.log(`✅ Sent reminder message: "${message}"`);
+  // Wait a bit to ensure message is sent before closing
+  await page.waitForTimeout(5000);
+  // Close the browser context after sending the reminder
+  await context.close();
+}
+
+module.exports = { run, sendReminder };
 
 if (require.main === module) {
   run().catch(console.error);

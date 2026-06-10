@@ -40,9 +40,29 @@ else
     echo "⚠️ .env file not found at $ENV_FILE"
 fi
 
+# 🔥 Determine notify-only flag
+notify_only=false
+node_args=()
+for arg in "$@"; do
+    if [[ "$arg" == "--notify" ]]; then
+        notify_only=true
+    else
+        node_args+=("$arg")
+    fi
+done
+
+if [[ "$notify_only" == true ]]; then
+    node_args+=("--notify")
+fi
+
 # 🔥 Run Node script
 echo "Running Node script..."
-/usr/local/bin/node "${SCRIPT_DIR}/index.js"
+/usr/local/bin/node "${SCRIPT_DIR}/index.js" "${node_args[@]}"
+
+if [[ "$notify_only" == true ]]; then
+    echo "Finished running Node script in notify-only mode."
+    exit 0
+fi
 
 # 🔥 Ensure kakao script is executable
 KAKAO_SCRIPT="${SCRIPT_DIR}/src/services/kakao-talk.sh"
