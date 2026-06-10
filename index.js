@@ -72,8 +72,7 @@ async function main(notifyOnly = false) {
   await run(emailSubject, reportFilename);
 }
 
-const notifyOnlyArg = process.argv[2];
-const notifyOnly = process.argv[2].includes("--notify");
+const notifyOnly = process.argv.includes("--notify");
 
 main(notifyOnly).catch((error) => {
   console.error(error);
