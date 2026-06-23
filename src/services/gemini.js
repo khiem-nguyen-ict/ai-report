@@ -92,7 +92,7 @@ async function waitForGeminiResponseComplete(page) {
           }
           return { status: "error", message: "Cannot find out the text elem." };
         }
-        return { status: "running" };
+        return { status: "gemini is running..." };
       })
       .catch((err) => ({ status: "error", message: err.message }));
 
@@ -120,6 +120,9 @@ async function sendToGeminiAndDownload(prompt, outputPath) {
   );
   await editor.click();
   await editor.fill(prompt);
+
+  // Wait a moment to ensure the prompt is fully registered before submitting
+  await page.waitForTimeout(1000);
 
   // Submit prompt
   await page.keyboard.press("Enter");

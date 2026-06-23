@@ -1,15 +1,14 @@
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
-const company = process.env.COMPANY || "TMA Solutions";
-const project = process.env.PROJECT || "AI Code Scanner";
-const client = process.env.CLIENT || "Insignary";
+const company = process.env.COMPANY || "Company";
+const project = process.env.PROJECT || "App Name";
+const client = process.env.CLIENT || "Client Name";
 const author = process.env.FROM_NAME || "Khiem Nguyen";
 const reportTitle = `${company} - ${project} / ${client}`;
 
-// ── TMA Solutions brand design spec (fixed — never changes) ───────────────
-const TMA_BRAND_CSS = `
-  /* ── TMA Solutions brand tokens ── */
+// ── Company brand design spec (fixed — never changes) ───────────────
+const COMPANY_BRAND_CSS = `
       :root {
         --company-branding-color: #279dd8;
         --highlight-color: #ffcc16;
@@ -314,7 +313,7 @@ This design must be consistent across every single report generated. Never devia
 
 Use EXACTLY this CSS (paste it verbatim inside a <style> tag):
 \`\`\`
-${TMA_BRAND_CSS}
+${COMPANY_BRAND_CSS}
 \`\`\`
 
 Use EXACTLY this HTML structure (fill in the [CONTENT] placeholders):
