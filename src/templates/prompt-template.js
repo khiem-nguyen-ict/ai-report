@@ -58,6 +58,7 @@ function buildStep4Text() {
 function buildPrompt(reportDate, dailyReportText, emailSubject) {
   let prompt = fs.readFileSync(path.join(__dirname, "prompt.txt"), "utf8");
   prompt = prompt.replace(/\{\{COMPANY\}\}/g, company);
+  prompt = prompt.replace(/\{\{AUTHOR\}\}/g, author);
   prompt = prompt.replace(/\{\{STEP4\}\}/g, buildStep4Text());
   prompt = prompt.replace(/\{\{CSS\}\}/g, COMPANY_BRAND_CSS);
   prompt = prompt.replace(/\{\{HTML_TEMPLATE\}\}/g, artifactTemplate);
