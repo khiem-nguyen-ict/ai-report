@@ -17,7 +17,10 @@ ai-report/
 │   │   ├── gemini.js         # Gemini AI interaction
 │   │   └── send-mail.js      # Email sending functionality
 │   ├── templates/            # Template processing
-│   │   └── insignary.js      # Prompt building for AI
+│   │   ├── prompt-template.js # Prompt builder for AI
+│   │   ├── prompt.txt         # Static prompt text with placeholders
+│   │   ├── brand.css          # Company brand CSS spec
+│   │   └── artifact-template.html # HTML artifact template
 │   ├── utils/                # Utility functions
 │   │   └── index.js          # Date extraction, report title generation, browser cleanup
 │   └── tests/                # Test files
@@ -57,15 +60,18 @@ ai-report/
    npm install
    ```
 3. Copy `.env.sample` to `.env` and fill in required values:
-   ```env
-   MS_TEAM_GROUP_NAME=Your Team Group Name
-   ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
-   AI_ENGINE=CLAUDE or GEMINI
-   # Email configuration
-   EMAIL_USER=your-email@example.com
-   EMAIL_PASS=your-app-password
-   EMAIL_TO=recipient@example.com
-   ```
+    ```env
+    MS_TEAM_GROUP_NAME=Your Team Group Name
+    ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
+    AI_ENGINE=CLAUDE or GEMINI
+    # Human Resources configuration
+    HR_FIXED_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    # Email configuration
+    EMAIL_USER=your-email@example.com
+    EMAIL_PASS=your-app-password
+    EMAIL_TO=recipient@example.com
+    ```
 4. First-time setup: Run the application and complete any manual login steps when prompted
    ```bash
    npm start
@@ -106,6 +112,8 @@ The application will:
 | `AI_ENGINE` | AI engine to use: `CLAUDE` or `GEMINI` | Yes |
 | `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 10) | No |
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
+| `HR_FIXED_PEOPLE` | Fixed HR people (Billable=Yes), format: `Name:Role:MaxEffort` (comma-separated) | No |
+| `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
 | `EMAIL_USER` | Email username for sending reports | Yes |
 | `EMAIL_PASS` | Email password/app password | Yes |
 | `EMAIL_TO` | Recipient email address | Yes |
@@ -125,8 +133,9 @@ The application will:
 - Scrapes messages from specified group(s) for the latest calendar day
 - Saves messages as both JSON and text files
 
-### Prompt Building (`src/templates/insignary.js`)
-- Combines fixed TMA Solutions branding with dynamic message content
+### Prompt Building (`src/templates/prompt-template.js`)
+- Reads static prompt text from `prompt.txt` with `{{PLACEHOLDER}}` tokens
+- Injects dynamic values: company name, HR config (from `.env`), CSS brand spec (`brand.css`), and HTML artifact template (`artifact-template.html`)
 - Creates structured prompts for AI report generation
 
 ### AI Processing (`claude.js`/`gemini.js`)

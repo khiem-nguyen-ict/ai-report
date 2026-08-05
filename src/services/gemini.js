@@ -58,7 +58,7 @@ async function waitForGeminiReady(page) {
   await page.waitForTimeout(1000);
 }
 
-async function waitForGeminiResponseComplete(page) {
+async function waitForLLMResponseComplete(page) {
   const start = Date.now();
 
   while (Date.now() - start < STREAMING_TIMEOUT_MS) {
@@ -92,7 +92,7 @@ async function waitForGeminiResponseComplete(page) {
           }
           return { status: "error", message: "Cannot find out the text elem." };
         }
-        return { status: "gemini is running..." };
+        return { status: "LLM is running..." };
       })
       .catch((err) => ({ status: "error", message: err.message }));
 
@@ -137,7 +137,7 @@ async function sendToGeminiAndDownload(prompt, outputPath) {
   );
 
   //   // Wait until generation stops
-  const responseText = await waitForGeminiResponseComplete(page);
+  const responseText = await waitForLLMResponseComplete(page);
 
   // Save to file
   const absPath = path.resolve(outputPath);

@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const PROFILE_DIR = "./teams-profile";
 const MS_TEAM_GROUP_NAME =
-  process.env.MS_TEAM_GROUP_NAME || "Mini Insignary Internal";
+  process.env.MS_TEAM_GROUP_NAME || "Internal Team Group";
 const ADDITIONAL_MS_TEAM_GROUP_NAME =
   process.env.ADDITIONAL_MS_TEAM_GROUP_NAME || null;
 const TIMEOUT = 30_000; // ⏱️ 30s for each click/list action
@@ -356,12 +356,14 @@ async function run() {
   });
 
   // Save files
+  const outDir = path.join(__dirname, "../../app-data");
+  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
-    path.join(__dirname, "../../app-data/messages.json"),
+    path.join(outDir, "messages.json"),
     JSON.stringify(messages, null, 2),
   );
   fs.writeFileSync(
-    path.join(__dirname, "../../app-data/messages.txt"),
+    path.join(outDir, "messages.txt"),
     messages
       .map((m) => `[${m.time}] ${m.author}:\n${m.text}`)
       .join("\n\n---\n\n"),
