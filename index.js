@@ -37,7 +37,7 @@ async function main(notifyOnly = false) {
     `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
   );
   const emailSubject = getReportTitle(reportDate);
-  // Email subject is not used in Gemini implementation but kept for API compatibility
+  // Email subject is not used in LLM implementation but kept for API compatibility
   console.log("📧 Email subject:", emailSubject);
 
   const dailyReportText = fs.readFileSync(
@@ -49,7 +49,7 @@ async function main(notifyOnly = false) {
     process.exit(1);
   }
 
-  const { buildPrompt } = require("./src/templates/insignary");
+  const { buildPrompt } = require("./src/templates/prompt-template");
   const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
   fs.writeFileSync(
     path.join(__dirname, "app-data/prompt_sent.txt"),
