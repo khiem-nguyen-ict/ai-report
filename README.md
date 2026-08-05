@@ -56,10 +56,14 @@ ai-report/
 
 1. Clone the repository
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Copy `.env.sample` to `.env` and fill in required values:
+    ```bash
+    npm install
+    ```
+3. Install `cliclick` for KakaoTalk automation (macOS only):
+    ```bash
+    brew install cliclick
+    ```
+4. Copy `.env.sample` to `.env` and fill in required values:
     ```env
     MS_TEAM_GROUP_NAME=Your Team Group Name
     ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
@@ -124,6 +128,7 @@ The application will:
 - **Dotenv**: Environment variable loading
 - **Nodemailer**: Email sending functionality
 - **Axios**: HTTP client (included but may not be actively used)
+- **cliclick**: Command-line mouse click tool for KakaoTalk automation (macOS only)
 
 ## How It Works
 
