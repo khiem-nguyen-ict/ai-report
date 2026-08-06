@@ -18,16 +18,17 @@ const client = process.env.CLIENT || "Client Name";
 const author = process.env.FROM_NAME || "Khiem Nguyen";
 
 // ── Human Resources config from .env ─────────────────────────────────────────
-// Format: Name:Role:MaxEffort (fixed people, always Billable = Yes)
+// Format: Name:Role:MaxEffort:Billable (fixed people, Billable = Yes or No)
 const hrFixedPeople = (process.env.HR_FIXED_PEOPLE)
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean)
   .map((entry) => {
     const parts = entry.split(":").map((s) => s.trim());
-    const [name, role, maxEffort] = parts;
+    const [name, role, maxEffort, billable] = parts;
     const effort = Math.max(1, Math.min(100, parseInt(maxEffort, 10) || 100));
-    return { name, role, maxEffort: effort };
+    const isBillable = billable === "Yes";
+    return { name, role, maxEffort: effort, billable: isBillable };
   });
 
 // Format: Name:Role:MaxEffort (conditional people)
@@ -42,11 +43,12 @@ const hrConditionalPeople = (process.env.HR_CONDITIONAL_PEOPLE)
 
 function buildStep4Text() {
   let text = "STEP 4 — Human Resources table. Columns: No., Name, Role, Billable, Effort (0-100%).\n";
-  text += "- Fixed people at top (Billable = Yes):\n";
+  text += "- Fixed people (always included in the report table regardless of daily log):\n";
   for (const p of hrFixedPeople) {
-    text += `    • ${p.name} — ${p.role}, Max Effort not more than ${p.maxEffort}%\n`;
+    const billableLabel = p.billable ? "Yes" : "No";
+    text += `    • ${p.name} — ${p.role}, Billable = ${billableLabel}, Max Effort not more than ${p.maxEffort}%\n`;
   }
-  text += "- All other people found in the log come after, Billable is No, and leave this column value empty.\n";
+  text += "- Conditional people (only appear in the table if found in the log):\n";
   for (const p of hrConditionalPeople) {
     text += `- If "${p.name}" is existed, his Role is always "${p.role}" and Effort is Not more than ${p.maxEffort}%\n`;
   }
