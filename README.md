@@ -69,7 +69,7 @@ ai-report/
     ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
     AI_ENGINE=CLAUDE or GEMINI
     # Human Resources configuration
-    HR_FIXED_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    HR_FIXED_PEOPLE=Name:Role:MaxEffort:Billable,Name:Role:MaxEffort:Billable
     HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
     # Email configuration
     EMAIL_USER=your-email@example.com
@@ -116,7 +116,7 @@ The application will:
 | `AI_ENGINE` | AI engine to use: `CLAUDE` or `GEMINI` | Yes |
 | `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 10) | No |
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
-| `HR_FIXED_PEOPLE` | Fixed HR people (Billable=Yes), format: `Name:Role:MaxEffort` (comma-separated) | No |
+| `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
 | `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
 | `EMAIL_USER` | Email username for sending reports | Yes |
 | `EMAIL_PASS` | Email password/app password | Yes |
