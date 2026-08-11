@@ -43,6 +43,7 @@ ai-report/
 - **Email Delivery**: Sends generated reports via email using Nodemailer
 - **Persistent Sessions**: Maintains login sessions to avoid repeated authentication
 - **Configurable**: Easily switch between AI engines via environment variables
+- **Customizable Reminders**: Configurable random reminder messages for MS Teams notify mode
 
 ## Pipeline
 
@@ -71,6 +72,8 @@ ai-report/
     # Human Resources configuration
     HR_FIXED_PEOPLE=Name:Role:MaxEffort:Billable,Name:Role:MaxEffort:Billable
     HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    # Reminder messages (JSON array)
+    REMINDER_MESSAGES=["Message 1","Message 2",...]
     # Email configuration
     EMAIL_USER=your-email@example.com
     EMAIL_PASS=your-app-password
@@ -97,6 +100,11 @@ Or directly:
 node index.js
 ```
 
+Notify mode (send a random reminder to MS Teams without generating a report):
+```bash
+node index.js --notify
+```
+
 The application will:
 1. Launch browser windows for Teams and AI interaction
 2. Prompt for manual login if needed (only first time)
@@ -118,6 +126,7 @@ The application will:
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
 | `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
+| `REMINDER_MESSAGES` | JSON array of random reminder messages for MS Teams notify mode | No |
 | `EMAIL_USER` | Email username for sending reports | Yes |
 | `EMAIL_PASS` | Email password/app password | Yes |
 | `EMAIL_TO` | Recipient email address | Yes |
