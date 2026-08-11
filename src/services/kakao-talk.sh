@@ -14,9 +14,34 @@ TODAY=$(date +"%Y-%m-%d")
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load environment variables from .env file
+# Load environment variables from .env file safely
 if [ -f "${SCRIPT_DIR}/../../.env" ]; then
-    source "${SCRIPT_DIR}/../../.env"
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Remove inline comments
+        line="${line%%#*}"
+        
+        # Extract key and value
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            
+            # Trim leading/trailing whitespace from value
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            
+            # Remove surrounding quotes if present
+            if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            fi
+            
+            export "$key=$value"
+        fi
+    done < "${SCRIPT_DIR}/../../.env"
 fi
 
 # Define the report directory (relative to script location)

@@ -4,13 +4,10 @@ require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 
 const COMPANY_BRAND_CSS = fs.readFileSync(path.join(__dirname, "brand.css"), "utf8");
 
-const artifactTemplate = fs
-  .readFileSync(path.join(__dirname, "artifact-template.html"), "utf8")
-  .replace(/{{EMAIL_SUBJECT}}/g, "${emailSubject}")
-  .replace(/{{REPORT_TITLE}}/g, "${reportTitle}")
-  .replace(/{{COMPANY}}/g, "${company}")
-  .replace(/{{AUTHOR}}/g, "${author}")
-  .replace(/{{REPORT_DATE}}/g, "${reportDate}");
+const artifactTemplate = fs.readFileSync(
+  path.join(__dirname, "artifact-template.html"),
+  "utf8",
+);
 
 const company = process.env.COMPANY || "Company";
 const project = process.env.PROJECT || "App Name";
@@ -58,12 +55,22 @@ function buildStep4Text() {
 }
 
 function buildPrompt(reportDate, dailyReportText, emailSubject) {
+  const reportTitle = emailSubject;
+  const reportDateFormatted = reportDate;
+
+  let html = artifactTemplate
+    .replace(/\{\{EMAIL_SUBJECT\}\}/g, emailSubject)
+    .replace(/\{\{REPORT_TITLE\}\}/g, reportTitle)
+    .replace(/\{\{COMPANY\}\}/g, company)
+    .replace(/\{\{AUTHOR\}\}/g, author)
+    .replace(/\{\{REPORT_DATE\}\}/g, reportDateFormatted);
+
   let prompt = fs.readFileSync(path.join(__dirname, "prompt.txt"), "utf8");
   prompt = prompt.replace(/\{\{COMPANY\}\}/g, company);
   prompt = prompt.replace(/\{\{AUTHOR\}\}/g, author);
   prompt = prompt.replace(/\{\{STEP4\}\}/g, buildStep4Text());
   prompt = prompt.replace(/\{\{CSS\}\}/g, COMPANY_BRAND_CSS);
-  prompt = prompt.replace(/\{\{HTML_TEMPLATE\}\}/g, artifactTemplate);
+  prompt = prompt.replace(/\{\{HTML_TEMPLATE\}\}/g, html);
   prompt = prompt.replace(/\{\{DAILY_REPORT\}\}/g, dailyReportText);
   return prompt;
 }
