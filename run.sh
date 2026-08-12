@@ -31,8 +31,17 @@ if [[ -f "$ENV_FILE" ]]; then
         [[ -z "$key" || "$key" =~ ^# ]] && continue
 
         # Trim whitespace
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+
+        # Strip matching surrounding quotes
+        if [[ "$value" =~ ^\'(.*)\'$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        elif [[ "$value" =~ ^\"(.*)\"$ ]]; then
+            value="${BASH_REMATCH[1]}"
+        fi
 
         export "$key"="$value"
     done < "$ENV_FILE"

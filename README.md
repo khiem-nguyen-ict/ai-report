@@ -15,7 +15,8 @@ ai-report/
 │   │   ├── ms-team.js        # Microsoft Teams scraping (Playwright)
 │   │   ├── claude.js         # Claude AI interaction
 │   │   ├── gemini.js         # Gemini AI interaction
-│   │   └── send-mail.js      # Email sending functionality
+│   │   ├── send-mail.js      # Email sending functionality
+│   │   └── kakao-talk.sh     # KakaoTalk automation (macOS only)
 │   ├── templates/            # Template processing
 │   │   ├── prompt-template.js # Prompt builder for AI
 │   │   ├── prompt.txt         # Static prompt text with placeholders
@@ -44,6 +45,7 @@ ai-report/
 - **Persistent Sessions**: Maintains login sessions to avoid repeated authentication
 - **Configurable**: Easily switch between AI engines via environment variables
 - **Customizable Reminders**: Configurable random reminder messages for MS Teams notify mode
+- **KakaoTalk Automation**: Optional KakaoTalk group message sending via `cliclick` (macOS only)
 
 ## Pipeline
 
@@ -77,7 +79,8 @@ ai-report/
     # Email configuration
     EMAIL_USER=your-email@example.com
     EMAIL_PASS=your-app-password
-    EMAIL_TO=recipient@example.com
+    TO_RECIPIENTS="Name" <email@example.com>,"Name" <email2@example.com>
+    CC_RECIPIENTS="Name" <email@example.com>
     ```
 4. First-time setup: Run the application and complete any manual login steps when prompted
    ```bash
@@ -90,6 +93,24 @@ ai-report/
 
 ## Usage
 
+### Via shell script (recommended)
+
+```bash
+./run.sh
+```
+
+This script:
+- Loads `.env` safely (supports quoted values)
+- Runs `index.js`
+- Launches the KakaoTalk automation script (`src/services/kakao-talk.sh`)
+
+Notify-only mode (send a random reminder to MS Teams without generating a report):
+```bash
+./run.sh --notify
+```
+
+### Direct Node.js
+
 Run the report generation pipeline:
 ```bash
 npm start
@@ -100,7 +121,7 @@ Or directly:
 node index.js
 ```
 
-Notify mode (send a random reminder to MS Teams without generating a report):
+Notify mode:
 ```bash
 node index.js --notify
 ```
