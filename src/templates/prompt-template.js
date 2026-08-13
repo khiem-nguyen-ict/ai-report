@@ -49,13 +49,14 @@ function buildStep4Text() {
   for (const p of hrConditionalPeople) {
     text += `- If "${p.name}" is existed, his Role is always "${p.role}" and Effort is Not more than ${p.maxEffort}%\n`;
   }
+  text += "- Flexible people (anyone found in the daily log but not listed above): include them in the table. Assign a Role based on context (default: AI Developer). Effort is calculated from chat volume, proactiveness, and task complexity visible in the log. This people will have the Billable status is No.\n";
   text += "- Effort: calculated from chat volume, proactiveness, and task complexity visible in the log.\n";
   text += "- Do NOT include any Effort Rationale or explanation column.";
   return text;
 }
 
 function buildPrompt(reportDate, dailyReportText, emailSubject) {
-  const reportTitle = emailSubject;
+  const reportTitle = project;
   const reportDateFormatted = reportDate;
 
   let html = artifactTemplate
