@@ -23,15 +23,18 @@ ai-report/
 │   │   ├── brand.css          # Company brand CSS spec
 │   │   └── artifact-template.html # HTML artifact template
 │   ├── utils/                # Utility functions
-│   │   └── index.js          # Date extraction, report title generation, browser cleanup
+│   │   ├── index.js          # Date extraction, report title generation, browser cleanup
+│   │   └── sanitize.js       # Data sanitization and sensitive information redaction
 │   └── tests/                # Test files
 │       ├── test-utils.js
 │       ├── test-gemini.js
-│       └── test-mail.js
+│       ├── test-mail.js
+│       └── test-sanitize.js  # Sanitization unit tests
 ├── app-data/                 # Data storage (messages, prompts, reports)
 │   ├── messages.json         # Scraped Teams messages in JSON format
 │   ├── messages.txt          # Scraped Teams messages in text format
 │   ├── prompt_sent.txt       # Last prompt sent to AI
+│   ├── sanitization-report.json # Audit log of redacted sensitive data
 │   └── report_*.html         # Generated HTML reports
 └── teams-profile/            # Persistent browser profile for Teams
 ```
@@ -46,14 +49,93 @@ ai-report/
 - **Configurable**: Easily switch between AI engines via environment variables
 - **Customizable Reminders**: Configurable random reminder messages for MS Teams notify mode
 - **KakaoTalk Automation**: Optional KakaoTalk group message sending via `cliclick` (macOS only)
+- **Data Sanitization**: Redacts sensitive information before sending data to LLM APIs, including PII, secrets, credentials, account information, and project-sensitive keywords
 
 ## Pipeline
 
 1. **Scrape Messages**: Extract today's messages from Microsoft Teams using Playwright
 2. **Extract Date**: Get the last date from messages.json for report naming
-3. **Build Prompt**: Create a prompt with fixed TMA Solutions branding + dynamic categories
-4. **AI Generation**: Send prompt to Claude or Gemini, wait for HTML artifact generation
-5. **Email Report**: Send the generated HTML report via email
+3. **Sanitize Data**: Redact sensitive information (PII, secrets, credentials, keywords) from scraped messages
+4. **Build Prompt**: Create a prompt with fixed TMA Solutions branding + dynamic categories
+5. **AI Generation**: Send sanitized prompt to Claude or Gemini, wait for HTML artifact generation
+6. **Email Report**: Send the generated HTML report via email
+
+## Data Sanitization
+
+The sanitization layer acts as a security gate between Teams data and LLM APIs. It detects and redacts sensitive information using a hybrid approach: **regex pattern matching** for known formats and **Shannon entropy analysis** for arbitrary-format secrets (the same algorithm used by `gitleaks`, `truffleHog`, and `detect-secrets`).
+
+### Detected Sensitive Information Categories
+
+#### Structured PII
+- **Email addresses** — standard RFC 5322-like patterns
+- **Phone numbers** — US formats (`(123) 456-7890`, `123-456-7890`) and international prefixes
+- **Social Security Numbers (SSN)** — `DDD-DD-DDDD` format
+- **Credit card numbers** — 13–16 digit sequences with common separators
+  - **Visa** — 13/16/19 digits starting with `4`, validated with Luhn algorithm
+  - **MasterCard** — 16 digits starting with `51`–`55`, validated with Luhn algorithm
+  - **American Express** — 15 digits starting with `34` or `37`, validated with Luhn algorithm
+  - **Discover** — 16 digits starting with `6011` or `65`, validated with Luhn algorithm
+
+#### Account Information
+- **Usernames / Logins** — `username=`, `user:`, `login=` assignments
+- **User IDs** — `user_id`, `userid`, `uid` assignments
+- **Account IDs** — `account_id`, `account_number`, `client_id`, `tenant_id`, `org_id`, `member_id`, `customer_id`
+- **Session Tokens** — `session`, `sessionid`, `session_id`, `jsessionid`, `phpsessid`
+- **CSRF / XSRF Tokens** — `csrf`, `xsrf`, `csrf_token`, `xsrf_token`
+- **Bearer Tokens** — `bearer`, `authorization` prefixes
+- **OAuth / Service Accounts** — `client_id`, `client_secret`, `app_id`, `app_secret`, `service_account`
+- **Credential Pairs** — Simultaneous `user` + `password` patterns in the same vicinity
+
+#### Secrets & Credentials
+- **API Keys / Tokens**
+  - AWS Access Key IDs (`AKIA…`, `AGPA…`, etc.)
+  - AWS Secret Access Keys (40-character base64 strings)
+  - GitHub Personal Access Tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`)
+  - Google API Keys (`AIza…`)
+  - Slack Tokens (`xoxp-`, `xoxb-`, `xoxa-`, `xoxr-`, `xoxs-`)
+  - Stripe Keys (`sk_live_`, `sk_test_`, `pk_live_`, `pk_test_`, `rk_live_`, `rk_test_`)
+  - Twilio Account SID (`AC...`) and Auth Tokens
+  - Mailgun API Keys (`key-...`)
+  - Heroku API Keys
+  - Square Access Tokens (`sq0atp-`, `sq0csp-`)
+  - JSON Web Tokens (JWT) — three Base64URL segments delimited by dots
+- **Private Keys** — PEM blocks (`-----BEGIN ... PRIVATE KEY-----`)
+- **Database Connection Strings** — `mongodb://`, `mysql://`, `postgresql://`, `mssql://`, `oracle://`, `redis://`, `amqp://`
+- **Password Assignments** — Explicit `password=`, `pass:`, `pwd:` patterns
+- **Generic Secrets** — High-entropy strings adjacent to keywords like `api_key`, `token`, `secret`, `access_key`
+- **Arbitrary-Format Secrets** — Any high-entropy string (detected via Shannon entropy) without known prefixes, e.g., `sk38vksnvw452jf...`
+
+#### Project-Sensitive Keywords
+- Configurable list of proprietary terms (e.g., `"Project Titan"`, `"Q3 Roadmap"`)
+- Case-insensitive matching with word-boundary awareness
+
+### Handling Strategies
+
+| Category | Strategy | Example Replacement |
+|----------|----------|---------------------|
+| Secrets / API Keys / JWTs | Full Redaction | `[REDACTED_API_KEY]` |
+| Account Information | Full Redaction | `[REDACTED_USERNAME]`, `[REDACTED_ACCOUNT_ID]` |
+| PII (Email, Phone, SSN) | Full Redaction | `[REDACTED_EMAIL]` |
+| Credit Cards (Visa, MasterCard, Amex, Discover) | Full Redaction | `[REDACTED_VISA]`, `[REDACTED_MASTERCARD]` |
+| Project Keywords | Full Redaction | `[REDACTED_KEYWORD]` |
+| Credential Pairs | Full Redaction | `[REDACTED_CREDENTIAL_PAIR]` |
+
+### Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SANITIZATION_MODE` | Detection strictness: `strict` (0.90 threshold), `balanced` (0.75), `lenient` (0.50), or `audit` | `balanced` |
+| `SENSITIVE_KEYWORDS` | Comma-separated list of project-sensitive keywords to redact | _(empty)_ |
+| `SANITIZATION_ALLOWLIST` | Comma-separated list of strings to never redact | _(empty)_ |
+
+### Audit & Observability
+
+After each run, a sanitization report is written to `app-data/sanitization-report.json` containing:
+- Timestamp and detection mode
+- List of all redacted findings with type, original value, replacement, confidence, and position
+- Original and sanitized text lengths
+
+This enables manual review and continuous improvement of detection rules.
 
 ## Setup
 
@@ -71,6 +153,10 @@ ai-report/
     MS_TEAM_GROUP_NAME=Your Team Group Name
     ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
     AI_ENGINE=CLAUDE or GEMINI
+    # Data Sanitization
+    SANITIZATION_MODE=balanced
+    SENSITIVE_KEYWORDS=Project Titan,Acme Client
+    SANITIZATION_ALLOWLIST=support@tmasolutions.com
     # Human Resources configuration
     HR_FIXED_PEOPLE=Name:Role:MaxEffort:Billable,Name:Role:MaxEffort:Billable
     HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
@@ -83,13 +169,13 @@ ai-report/
     CC_RECIPIENTS="Name" <email@example.com>
     ```
 4. First-time setup: Run the application and complete any manual login steps when prompted
-   ```bash
-   npm start
-   ```
-   or
-   ```bash
-   node index.js
-   ```
+    ```bash
+    npm start
+    ```
+    or
+    ```bash
+    node index.js
+    ```
 
 ## Usage
 
@@ -130,9 +216,10 @@ The application will:
 1. Launch browser windows for Teams and AI interaction
 2. Prompt for manual login if needed (only first time)
 3. Scrape messages from Teams
-4. Generate AI report
-5. Send report via email
-6. Close browsers and exit
+4. Sanitize sensitive data from messages
+5. Generate AI report
+6. Send report via email
+7. Close browsers and exit
 
 ## Configuration
 
@@ -143,7 +230,7 @@ The application will:
 | `MS_TEAM_GROUP_NAME` | Primary Microsoft Teams group to scrape | Yes |
 | `ADDITIONAL_MS_TEAM_GROUP_NAME` | Additional Teams group to scrape (optional) | No |
 | `AI_ENGINE` | AI engine to use: `CLAUDE` or `GEMINI` | Yes |
-| `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 10) | No |
+| `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 5) | No |
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
 | `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
@@ -151,6 +238,9 @@ The application will:
 | `EMAIL_USER` | Email username for sending reports | Yes |
 | `EMAIL_PASS` | Email password/app password | Yes |
 | `EMAIL_TO` | Recipient email address | Yes |
+| `SANITIZATION_MODE` | Sanitization strictness: `strict`, `balanced`, `lenient`, or `audit` (default: `balanced`) | No |
+| `SENSITIVE_KEYWORDS` | Comma-separated project-sensitive keywords to redact | No |
+| `SANITIZATION_ALLOWLIST` | Comma-separated strings to never redact | No |
 
 ## Dependencies
 
@@ -168,6 +258,13 @@ The application will:
 - Scrapes messages from specified group(s) for the latest calendar day
 - Saves messages as both JSON and text files
 
+### Data Sanitization (`src/utils/sanitize.js`)
+- Runs immediately after Teams scraping and before prompt construction
+- Uses hybrid detection: **regex patterns** for known secret formats + **Shannon entropy** for arbitrary-format secrets
+- Redacts 30+ sensitive data types including PII, account information, API keys, tokens, credentials, and project keywords
+- Writes an audit report to `app-data/sanitization-report.json` for review
+- Supports configurable modes (`strict`, `balanced`, `lenient`) and allowlists
+
 ### Prompt Building (`src/templates/prompt-template.js`)
 - Reads static prompt text from `prompt.txt` with `{{PLACEHOLDER}}` tokens
 - Injects dynamic values: company name, HR config (from `.env`), CSS brand spec (`brand.css`), and HTML artifact template (`artifact-template.html`)
@@ -183,6 +280,13 @@ The application will:
 - Uses Nodemailer to send HTML reports as email attachments
 - Configurable recipient, subject, and sender
 
+## Testing
+
+Run the sanitization test suite:
+```bash
+npm test
+```
+
 ## Notes
 
 - First-time execution requires manual login to Teams and possibly AI platforms
@@ -190,6 +294,7 @@ The application will:
 - The system is designed to run daily to generate reports from the previous day's messages
 - AI platforms may require manual interaction only on first use (to handle any CAPTCHA or login prompts)
 - Generated reports are saved in `app-data/` with date-based filenames
+- Sanitization reports are saved in `app-data/sanitization-report.json` for audit purposes
 
 ## Troubleshooting
 
@@ -197,6 +302,7 @@ The application will:
 - Check console output for detailed progress information
 - Screenshots are saved to `app-data/` when certain errors occur (e.g., missing download buttons)
 - Ensure Playwright browsers are installed: `npx playwright install`
+- Review `app-data/sanitization-report.json` to verify redactions and tune allowlists/keywords
 
 ## License
 
