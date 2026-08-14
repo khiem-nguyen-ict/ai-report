@@ -15,7 +15,8 @@ ai-report/
 │   │   ├── ms-team.js        # Microsoft Teams scraping (Playwright)
 │   │   ├── claude.js         # Claude AI interaction
 │   │   ├── gemini.js         # Gemini AI interaction
-│   │   └── send-mail.js      # Email sending functionality
+│   │   ├── send-mail.js      # Email sending functionality
+│   │   └── kakao-talk.sh     # KakaoTalk automation (macOS only)
 │   ├── templates/            # Template processing
 │   │   ├── prompt-template.js # Prompt builder for AI
 │   │   ├── prompt.txt         # Static prompt text with placeholders
@@ -159,10 +160,13 @@ This enables manual review and continuous improvement of detection rules.
     # Human Resources configuration
     HR_FIXED_PEOPLE=Name:Role:MaxEffort:Billable,Name:Role:MaxEffort:Billable
     HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    # Reminder messages (JSON array)
+    REMINDER_MESSAGES=["Message 1","Message 2",...]
     # Email configuration
     EMAIL_USER=your-email@example.com
     EMAIL_PASS=your-app-password
-    EMAIL_TO=recipient@example.com
+    TO_RECIPIENTS="Name" <email@example.com>,"Name" <email2@example.com>
+    CC_RECIPIENTS="Name" <email@example.com>
     ```
 4. First-time setup: Run the application and complete any manual login steps when prompted
     ```bash
@@ -175,6 +179,24 @@ This enables manual review and continuous improvement of detection rules.
 
 ## Usage
 
+### Via shell script (recommended)
+
+```bash
+./run.sh
+```
+
+This script:
+- Loads `.env` safely (supports quoted values)
+- Runs `index.js`
+- Launches the KakaoTalk automation script (`src/services/kakao-talk.sh`)
+
+Notify-only mode (send a random reminder to MS Teams without generating a report):
+```bash
+./run.sh --notify
+```
+
+### Direct Node.js
+
 Run the report generation pipeline:
 ```bash
 npm start
@@ -183,6 +205,11 @@ npm start
 Or directly:
 ```bash
 node index.js
+```
+
+Notify mode:
+```bash
+node index.js --notify
 ```
 
 The application will:
@@ -207,6 +234,7 @@ The application will:
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
 | `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
+| `REMINDER_MESSAGES` | JSON array of random reminder messages for MS Teams notify mode | No |
 | `EMAIL_USER` | Email username for sending reports | Yes |
 | `EMAIL_PASS` | Email password/app password | Yes |
 | `EMAIL_TO` | Recipient email address | Yes |
