@@ -49,8 +49,12 @@ async function main(notifyOnly = false) {
     process.exit(1);
   }
 
+  const { sanitizeText, writeReport } = require("./src/utils/sanitize");
+  const { sanitizedText, report } = sanitizeText(dailyReportText);
+  writeReport(report);
+
   const { buildPrompt } = require("./src/templates/prompt-template");
-  const prompt = buildPrompt(reportDate, dailyReportText, emailSubject);
+  const prompt = buildPrompt(reportDate, sanitizedText, emailSubject);
   fs.writeFileSync(
     path.join(__dirname, "app-data/prompt_sent.txt"),
     prompt,
