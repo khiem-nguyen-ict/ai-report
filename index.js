@@ -61,6 +61,11 @@ async function main(notifyOnly = false) {
     "utf-8",
   );
 
+  // Generate the report via the configured AI engine (Gemini or Claude).
+  // After generation, the file at reportFilename must contain valid HTML.
+  // If the AI returns plain text or an error page instead, the pipeline
+  // exits here with an error message (see validation block below).
+
   if (process.env.AI_ENGINE === "GEMINI") {
     const { sendToGeminiAndDownload } = require("./src/services/gemini");
     await sendToGeminiAndDownload(prompt, reportFilename);
@@ -71,6 +76,22 @@ async function main(notifyOnly = false) {
     console.error("No AI engine configurated. Abort");
     process.exit(1);
   }
+
+  // Read the generated report file and verify it is valid HTML content.
+  // If the AI returned plain text or an error page instead of HTML, exit.
+  const reportContent = fs.readFileSync(reportFilename, "utf-8").trim();
+  const htmlStart = reportContent.slice(0, 200);
+  const isHtml =
+    /^<!DOCTYPE\s+html/i.test(reportContent) ||
+    /^<html[\s>]/i.test(reportContent) ||
+    /<html[\s>]/i.test(reportContent);
+  if (!isHtml) {
+    console.error("❌ Generated report is not valid HTML content.");
+    console.error(`   File: ${reportFilename}`);
+    console.error(`   First 200 chars: ${htmlStart}`);
+    process.exit(1);
+  }
+  console.log(`✅ Report validated as HTML: ${reportFilename}`);
 
   const { run } = require("./src/services/send-mail");
   await run(emailSubject, reportFilename);
