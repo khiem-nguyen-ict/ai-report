@@ -86,7 +86,13 @@ async function waitForLLMResponseComplete(page) {
             const textElem = r[r.length - 1];
             if (textElem) {
               let text = textElem.innerText.trim();
-              text = text.replace(/^HTML/i, "").trim();
+              // Strip markdown code fences and common HTML prefixes the LLM
+              // may prepend (e.g. "```html", "HTML", "```").
+              text = text
+                .replace(/^```(?:html)?\s*/i, "")
+                .replace(/```\s*$/, "")
+                .replace(/^HTML\s*/i, "")
+                .trim();
               return { status: "completed", data: text };
             }
           }
