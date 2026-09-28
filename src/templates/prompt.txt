@@ -34,7 +34,7 @@ STEP 3 — Short summary section:
 ---
 
 OUTPUT FORMAT — CRITICAL:
-Create a Claude Artifact of type HTML.
+Create a Artifact of type HTML.
 The artifact must be a COMPLETE, SELF-CONTAINED HTML file.
 
 BRANDING IS FIXED — do NOT change any colors, fonts, or layout structure from the spec below.
