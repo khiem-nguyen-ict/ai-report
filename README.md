@@ -1,6 +1,6 @@
 # AI Report Generator
 
-An automated system that scrapes messages from Microsoft Teams, processes them with AI (Claude or Gemini), generates HTML reports, and sends them via email.
+An automated system that scrapes messages from Microsoft Teams, processes them with AI (Claude, Gemini, or Cohere), generates HTML reports, and sends them via email.
 
 ## Project Structure
 
@@ -15,6 +15,7 @@ ai-report/
 │   │   ├── ms-team.js        # Microsoft Teams scraping (Playwright)
 │   │   ├── claude.js         # Claude AI interaction
 │   │   ├── gemini.js         # Gemini AI interaction
+│   │   ├── cohere.js         # Cohere API interaction (no browser)
 │   │   ├── send-mail.js      # Email sending functionality
 │   │   └── kakao-talk.sh     # KakaoTalk automation (macOS only)
 │   ├── templates/            # Template processing
@@ -28,6 +29,7 @@ ai-report/
 │   └── tests/                # Test files
 │       ├── test-utils.js
 │       ├── test-gemini.js
+│       ├── cohere-test.js    # Cohere service test
 │       ├── test-mail.js
 │       └── test-sanitize.js  # Sanitization unit tests
 ├── app-data/                 # Data storage (messages, prompts, reports)
@@ -42,7 +44,7 @@ ai-report/
 ## Features
 
 - **Microsoft Teams Integration**: Automatically logs into Teams (saves session for future runs) and scrapes messages from specified groups
-- **AI Processing**: Sends scraped messages to either Claude AI or Gemini AI for report generation
+- **AI Processing**: Sends scraped messages to Claude AI, Gemini AI, or the Cohere API for report generation
 - **Report Generation**: Creates professional HTML reports with TMA Solutions branding
 - **Email Delivery**: Sends generated reports via email using Nodemailer
 - **Persistent Sessions**: Maintains login sessions to avoid repeated authentication
@@ -57,8 +59,39 @@ ai-report/
 2. **Extract Date**: Get the last date from messages.json for report naming
 3. **Sanitize Data**: Redact sensitive information (PII, secrets, credentials, keywords) from scraped messages
 4. **Build Prompt**: Create a prompt with fixed TMA Solutions branding + dynamic categories
-5. **AI Generation**: Send sanitized prompt to Claude or Gemini, wait for HTML artifact generation
+5. **AI Generation**: Send sanitized prompt to Claude, Gemini, or Cohere, wait for HTML artifact generation
 6. **Email Report**: Send the generated HTML report via email
+
+## AI Engines
+
+Set `AI_ENGINE` in `.env` to pick the engine. All three consume the same prompt and must produce a complete HTML document at the target path — `index.js` validates the output is HTML and aborts if it isn't.
+
+| `AI_ENGINE` | Service | Interface | Requires |
+|--------------|---------|-----------|----------|
+| `CLAUDE` (default) | `src/services/claude.js` | Browser (Playwright) | Manual login on first run |
+| `GEMINI` | `src/services/gemini.js` | Browser (Playwright + stealth) | Manual login on first run |
+| `COHERE` | `src/services/cohere.js` | REST API (Axios) | `COHERE_API_KEY` |
+
+### Cohere
+
+Cohere is the only engine that uses a direct API call rather than browser automation, so it needs no login, no manual CAPTCHA handling, and no Playwright window — which makes it the most reliable option for unattended/cron runs.
+
+- Get a key at [dashboard.cohere.com](https://dashboard.cohere.com); a trial key is created automatically with the account.
+- Set `COHERE_API_KEY` (and optionally `COHERE_MODEL`, default `command-a-03-2025`).
+- The service posts to the Cohere v2 Chat API with a system prompt that asks for a complete, self-contained HTML document with inline CSS, then strips any markdown fences the model may wrap the answer in.
+- Standalone test: `node src/tests/cohere-test.js` (makes two billable API calls).
+
+#### Cohere free/trial API limitations
+
+The free trial key is meant for evaluation, not production:
+
+- **1,000 API calls per month**, shared across all endpoints. One pipeline run makes one Chat call, so a daily schedule stays well within this.
+- **20 requests per minute** for Chat models (Command A, Command R+, Command R, Command R7B). Exceeding a limit returns `429 Too Many Requests` and the run fails — there is no automatic retry/backoff in `cohere.js`.
+- **Trial keys are not permitted for production or commercial use.** If this pipeline is used commercially, a production key is required.
+- Trial access to newer variants (Command A Reasoning, Translate, Vision) is also capped at 1,000 calls/month, and those models have no self-serve production rate limit — they are contact-sales only.
+- For production keys, Command A and Command R-family models are rate limited at 500 requests/min and billed per token (Command A: $1.00/1M input, $2.00/1M output). Check [cohere.com/pricing](https://cohere.com/pricing) for current figures.
+
+Raise `max_tokens` or lower the report size in the prompt if a long day of messages gets truncated mid-document.
 
 ## Data Sanitization
 
@@ -152,7 +185,7 @@ This enables manual review and continuous improvement of detection rules.
     ```env
     MS_TEAM_GROUP_NAME=Your Team Group Name
     ADDITIONAL_MS_TEAM_GROUP_NAME=Additional Team Group Name (optional)
-    AI_ENGINE=CLAUDE or GEMINI
+    AI_ENGINE=CLAUDE, GEMINI, or COHERE
     # Data Sanitization
     SANITIZATION_MODE=balanced
     SENSITIVE_KEYWORDS=Project Titan,Acme Client
@@ -162,6 +195,9 @@ This enables manual review and continuous improvement of detection rules.
     HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
     # Reminder messages (JSON array)
     REMINDER_MESSAGES=["Message 1","Message 2",...]
+    # Cohere (only when AI_ENGINE=COHERE)
+    COHERE_API_KEY=your-cohere-trial-key
+    COHERE_MODEL=command-a-03-2025
     # Email configuration
     EMAIL_USER=your-email@example.com
     EMAIL_PASS=your-app-password
@@ -229,7 +265,9 @@ The application will:
 |----------|-------------|----------|
 | `MS_TEAM_GROUP_NAME` | Primary Microsoft Teams group to scrape | Yes |
 | `ADDITIONAL_MS_TEAM_GROUP_NAME` | Additional Teams group to scrape (optional) | No |
-| `AI_ENGINE` | AI engine to use: `CLAUDE` or `GEMINI` | Yes |
+| `AI_ENGINE` | AI engine to use: `CLAUDE`, `GEMINI`, or `COHERE` | Yes |
+| `COHERE_API_KEY` | Cohere API key, required when `AI_ENGINE=COHERE` (trial key: 1,000 calls/month, 20 req/min) | Only for `COHERE` |
+| `COHERE_MODEL` | Cohere model name (default: `command-a-03-2025`) | No |
 | `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 5) | No |
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
@@ -247,7 +285,7 @@ The application will:
 - **Playwright**: Browser automation for Teams and AI interaction
 - **Dotenv**: Environment variable loading
 - **Nodemailer**: Email sending functionality
-- **Axios**: HTTP client (included but may not be actively used)
+- **Axios**: HTTP client, used by the Cohere service
 - **cliclick**: Command-line mouse click tool for KakaoTalk automation (macOS only)
 
 ## How It Works
@@ -270,11 +308,19 @@ The application will:
 - Injects dynamic values: company name, HR config (from `.env`), CSS brand spec (`brand.css`), and HTML artifact template (`artifact-template.html`)
 - Creates structured prompts for AI report generation
 
-### AI Processing (`claude.js`/`gemini.js`)
-- Launches persistent browser contexts for AI platforms
+### AI Processing (`claude.js`/`gemini.js`/`cohere.js`)
+- Claude and Gemini launch persistent browser contexts for the AI platforms
 - Submits prompts and waits for response completion
 - For Claude: Waits for artifact generation and downloads HTML
 - For Gemini: Extracts generated text and saves as HTML
+- For Cohere: Calls the v2 Chat API over HTTPS (no browser) and writes the returned HTML directly
+
+### Cohere Service (`src/services/cohere.js`)
+- `generateHtml(prompt, options?)` returns the generated HTML as a string
+- `sendToCohereAndSave(prompt, outputPath, options?)` also writes the HTML to disk
+- Options: `model`, `temperature` (0.3), `maxTokens` (8192), `systemPrompt`, `preamble`
+- Throws on a missing key, an empty prompt, an empty response, or a failed request
+- See [Cohere free API limitations](#cohere-freetrial-api-limitations) before relying on a trial key
 
 ### Email Delivery (`send-mail.js`)
 - Uses Nodemailer to send HTML reports as email attachments
@@ -285,6 +331,11 @@ The application will:
 Run the sanitization test suite:
 ```bash
 npm test
+```
+
+Run the Cohere service test (requires `COHERE_API_KEY`, makes two live API calls):
+```bash
+node src/tests/cohere-test.js
 ```
 
 ## Notes
@@ -303,6 +354,7 @@ npm test
 - Screenshots are saved to `app-data/` when certain errors occur (e.g., missing download buttons)
 - Ensure Playwright browsers are installed: `npx playwright install`
 - Review `app-data/sanitization-report.json` to verify redactions and tune allowlists/keywords
+- `AI_ENGINE=COHERE` errors: `COHERE_API_KEY is not set` means the key is missing from `.env`; `429 Too Many Requests` means the trial limits (1,000 calls/month, 20 requests/min) were hit — check the [Cohere dashboard](https://dashboard.cohere.com) usage or switch to another engine
 
 ## License
 

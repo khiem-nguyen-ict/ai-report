@@ -61,7 +61,7 @@ async function main(notifyOnly = false) {
     "utf-8",
   );
 
-  // Generate the report via the configured AI engine (Gemini or Claude).
+  // Generate the report via the configured AI engine (Gemini, Claude or Cohere).
   // After generation, the file at reportFilename must contain valid HTML.
   // If the AI returns plain text or an error page instead, the pipeline
   // exits here with an error message (see validation block below).
@@ -72,6 +72,9 @@ async function main(notifyOnly = false) {
   } else if (process.env.AI_ENGINE === "CLAUDE") {
     const { sendToClaudeAndDownload } = require("./src/services/claude");
     await sendToClaudeAndDownload(prompt, reportFilename);
+  } else if (process.env.AI_ENGINE === "COHERE") {
+    const { sendToCohereAndSave } = require("./src/services/cohere");
+    await sendToCohereAndSave(prompt, reportFilename);
   } else {
     console.error("No AI engine configurated. Abort");
     process.exit(1);
