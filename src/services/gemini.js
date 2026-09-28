@@ -1,4 +1,7 @@
-const { chromium } = require("playwright");
+const { chromium } = require("playwright-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+chromium.use(StealthPlugin());
+
 const path = require("path");
 const fs = require("fs");
 
@@ -30,8 +33,8 @@ async function getPage() {
     headless: false,
     channel: "chrome",
     args: [
-      "--disable-blink-features=AutomationControlled",
-      "--disable-web-security",
+      //"--disable-blink-features=AutomationControlled",
+      //"--disable-web-security",
     ],
     viewport: { width: 1240, height: 800 },
   });
@@ -55,7 +58,36 @@ async function waitForGeminiReady(page) {
       timeout: EDITOR_READY_TIMEOUT,
     },
   );
+
+  // Dismiss any transient banner overlays that may intercept clicks
+  await dismissBanners(page);
+
   await page.waitForTimeout(1000);
+}
+
+async function dismissBanners(page) {
+  const dismissibleSelectors = [
+    "button[aria-label*='Dismiss']",
+    "button[aria-label*='Close']",
+    "button:has-text('Got it')",
+    "button:has-text('Dismiss')",
+    "button:has-text('Okay')",
+    "button:has-text('Accept')",
+    ".banner-body button",
+    ".cdk-overlay-container button",
+  ];
+  for (const sel of dismissibleSelectors) {
+    try {
+      const btn = await page.$(sel);
+      if (btn) {
+        const visible = await btn.isVisible().catch(() => false);
+        if (visible) {
+          await btn.click({ timeout: 2000 }).catch(() => {});
+          await page.waitForTimeout(500);
+        }
+      }
+    } catch (_) {}
+  }
 }
 
 async function waitForLLMResponseComplete(page) {
@@ -64,23 +96,15 @@ async function waitForLLMResponseComplete(page) {
   while (Date.now() - start < STREAMING_TIMEOUT_MS) {
     const result = await page
       .evaluate(() => {
-        // Gemini has changed the UI on 20-May-2026
+        // Gemini UI (as of Sep 2026) uses <thinking-overlay> which is empty
+        // when idle and populated while the model is generating.
+        const overlay = document.querySelector("thinking-overlay");
+        const isThinking = overlay ? overlay.childElementCount > 0 : false;
 
-        //const bardAvatar = document.querySelector("model-response bard-avatar div[lottie-animation]");
-        //const status = bardAvatar?.getAttribute("data-test-lottie-animation-status");
-
-        const svg = document.querySelector(
-          "thinking-dots-animation .thinking-dots-animation svg",
-        );
-
-        const is3DotVisible = svg
-          ? window.getComputedStyle(svg).contentVisibility === "visible"
-          : false;
-
-        // This means the response is ready completly!
+        // message-actions appears once the response is fully rendered.
         const isReady = document.querySelector("message-actions") != null;
-        
-        if (!is3DotVisible && isReady) {
+
+        if (!isThinking && isReady) {
           const r = document.querySelectorAll("structured-content-container");
           if (r && r.length > 0) {
             const textElem = r[r.length - 1];
@@ -110,7 +134,7 @@ async function waitForLLMResponseComplete(page) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 
-  throw new Error(`❌ Timed out after ${timeout / 1000}s.`);
+  throw new Error(`❌ Timed out after ${STREAMING_TIMEOUT_MS / 1000}s.`);
 }
 
 // ── Main export ───────────────────────────────────────────────────────────
@@ -124,8 +148,27 @@ async function sendToGeminiAndDownload(prompt, outputPath) {
       timeout: EDITOR_READY_TIMEOUT,
     },
   );
-  await editor.click();
-  await editor.fill(prompt);
+
+  // Dismiss any transient banner overlays that may intercept clicks
+  await dismissBanners(page);
+
+  let typed = false;
+  for (let attempt = 0; attempt < 5 && !typed; attempt++) {
+    try {
+      await editor.click({ timeout: 5000 });
+      await editor.fill(prompt);
+      typed = true;
+    } catch (err) {
+      console.warn(`⚠️  Click attempt ${attempt + 1} failed: ${err.message}`);
+      await dismissBanners(page);
+      await page.waitForTimeout(1000);
+    }
+  }
+  if (!typed) {
+    // Fallback: focus via Tab/Enter and type directly
+    await page.keyboard.press("Tab");
+    await page.keyboard.type(prompt);
+  }
 
   // Wait a moment to ensure the prompt is fully registered before submitting
   await page.waitForTimeout(1000);
@@ -134,15 +177,13 @@ async function sendToGeminiAndDownload(prompt, outputPath) {
   await page.keyboard.press("Enter");
   console.log("📤 Prompt submitted.");
 
-  console.log("⏳ Waiting for Gemini to finish generating...");
-  await page.waitForSelector(
-    "thinking-dots-animation .thinking-dots-animation svg",
-    {
-      timeout: FIRST_RESPONSE_TIMEOUT,
-    },
-  );
+  console.log("⏳ Waiting for Gemini to start generating...");
+  await page.waitForSelector("thinking-overlay", {
+    timeout: FIRST_RESPONSE_TIMEOUT,
+    state: "attached",
+  });
 
-  //   // Wait until generation stops
+  // Wait until generation stops
   const responseText = await waitForLLMResponseComplete(page);
 
   // Save to file
