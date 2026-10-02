@@ -103,6 +103,8 @@ async function main(notifyOnly = false) {
 const notifyOnly = process.argv.includes("--notify");
 
 main(notifyOnly).catch((error) => {
-  console.error(error);
+  // Services already log a concise reason; never dump the full request/response.
+  console.error(`❌ Pipeline failed: ${error?.message || error}`);
+  if (error?.cause) console.error(`   Cause: ${error.cause.message || error.cause}`);
   process.exit(1);
 });
