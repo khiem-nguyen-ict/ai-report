@@ -453,7 +453,11 @@ async function fillComposeField(page, type, value) {
 
 // ─────────────────────────────────────────────
 //  COMPOSE AND SEND EMAIL (Zimbra Classic) — fallback
-// ─────────────────────────────────────────────
+// ─────────────────────
+
+const isMac = process.platform === "darwin";
+const MOD = isMac ? "Meta" : "Control";
+
 async function composeAndSend(
   page,
   browser,
@@ -502,8 +506,8 @@ async function composeAndSend(
   await htmlPage.waitForTimeout(800);
   console.log("  📄 Opened HTML file in a new tab");
 
-  // Step 2: Cmd+A (Select All) then Cmd+C (Copy)
-  await htmlPage.keyboard.press("Meta+a");
+  // Step 2: Select All then Copy
+  await htmlPage.keyboard.press(`${MOD}+a`);
   // verify
   let hasSelection = false;
   let selection = null;
@@ -522,14 +526,14 @@ async function composeAndSend(
     process.exit(1);
   }
 
-  await htmlPage.keyboard.press("Meta+c");
+  await htmlPage.keyboard.press(`${MOD}+c`);
   await htmlPage.waitForTimeout(2000);
-  console.log("  📋 Executed Cmd+A + Cmd+C on HTML content");
+  console.log(`  📋 Executed ${MOD}+A + ${MOD}+C on HTML content`);
 
   // Step 3: Close HTML tab
   await htmlPage.close();
 
-  // Step 4: Click into editor iframe then Cmd+A + Cmd+V
+  // Step 4: Click into editor iframe then Select All + Paste
   const editorFrame = page
     .frameLocator("iframe[id^='ZmHtmlEditor'], iframe[class*='ZmHtmlEditor']")
     .first();
@@ -538,12 +542,12 @@ async function composeAndSend(
   if ((await editorBody.count()) > 0) {
     await editorBody.click();
     await page.waitForTimeout(800);
-    await editorBody.press("Meta+a"); // Clear old content
+    await editorBody.press(`${MOD}+a`); // Clear old content
     await page.waitForTimeout(600);
-    await editorBody.press("Meta+v"); // Paste from clipboard
+    await editorBody.press(`${MOD}+v`); // Paste from clipboard
     await page.waitForTimeout(1000);
     console.log("  ✍️  Pasted content into Zimbra editor");
-    await editorBody.press("Meta+ArrowUp");
+    await editorBody.press(`${MOD}+ArrowUp`);
   } else {
     throw new Error("Could not find email body editor (iframe)");
   }
@@ -618,18 +622,57 @@ const { exec } = require("child_process");
 
 function promptSendConfirmation() {
   return new Promise((resolve) => {
-    // support Automator
-    exec(
-      `osascript -e 'button returned of (display dialog "Send email now?" buttons {"No","Yes"} default button "Yes")'`,
-      (error, stdout) => {
+    const isWindows = process.platform === "win32";
+    const isMac = process.platform === "darwin";
+
+    if (isWindows) {
+      // Use PowerShell message box on Windows
+      const psScript = `
+        Add-Type -AssemblyName PresentationFramework
+        $result = [System.Windows.MessageBox]::Show(
+          'Send email now?',
+          'Confirm Send',
+          'YesNo',
+          'Question'
+        )
+        exit $result
+      `;
+      exec(`powershell -Command "${psScript.replace(/\n/g, '; ')}"`, (error, stdout) => {
         if (error) {
-          console.log("⚠️ Dialog failed, treating as cancel");
-          return resolve(false);
+          console.log("⚠️ Dialog failed, falling back to terminal prompt");
+          return fallbackPrompt(resolve);
         }
-        const result = stdout.toString().trim();
-        resolve(result === "Yes");
-      },
-    );
+        // Yes = 6, No = 7
+        resolve(stdout.trim() === "6" || stdout.trim().toLowerCase() === "yes");
+      });
+    } else if (isMac) {
+      // Use osascript on macOS
+      exec(
+        `osascript -e 'button returned of (display dialog "Send email now?" buttons {"No","Yes"} default button "Yes")'`,
+        (error, stdout) => {
+          if (error) {
+            console.log("⚠️ Dialog failed, falling back to terminal prompt");
+            return fallbackPrompt(resolve);
+          }
+          const result = stdout.toString().trim();
+          resolve(result === "Yes");
+        },
+      );
+    } else {
+      // Linux/other: fallback to terminal prompt
+      fallbackPrompt(resolve);
+    }
+  });
+}
+
+function fallbackPrompt(resolve) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.question("Send email now? (y/N): ", (answer) => {
+    rl.close();
+    resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
   });
 }
 
