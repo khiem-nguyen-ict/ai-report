@@ -9,8 +9,8 @@ const MS_TEAM_GROUP_NAME =
   process.env.MS_TEAM_GROUP_NAME || "Internal Team Group";
 const ADDITIONAL_MS_TEAM_GROUP_NAME =
   process.env.ADDITIONAL_MS_TEAM_GROUP_NAME || null;
-const TIMEOUT = 30_000; // ⏱️ 30s for each click/list action
-const SHELL_TIMEOUT = 120_000; // Teams SPA loads slowly / many network connections
+const TIMEOUT = 60_000; // ⏱️ 60s for each click/list action
+const SHELL_TIMEOUT = 30000; // Teams SPA loads slowly / many network connections
 /** Maximum number of scroll ups to lazy-load more messages for the same day (enough for ~1 day of chat). */
 const MAX_CHAT_SCROLL_UP = parseInt(process.env.MAX_CHAT_SCROLL_UP, 5) || 5;
 
@@ -496,7 +496,7 @@ async function scrollThreadAndCollectLastDayMessages(page) {
 
   for (let pass = 0; pass < MAX_CHAT_SCROLL_UP; pass++) {
     await scrollChatPaneTowardStart(page);
-    await page.waitForTimeout(550);
+    await page.waitForTimeout(3000);
     await mergeBatch();
   }
 
