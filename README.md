@@ -45,7 +45,7 @@ ai-report/
 
 - **Microsoft Teams Integration**: Automatically logs into Teams (saves session for future runs) and scrapes messages from specified groups
 - **AI Processing**: Sends scraped messages to Claude AI, Gemini AI, or the Cohere API for report generation
-- **Report Generation**: Creates professional HTML reports with TMA Solutions branding
+- **Report Generation**: Creates professional HTML reports with organization branding
 - **Email Delivery**: Sends generated reports via email using Nodemailer
 - **Persistent Sessions**: Maintains login sessions to avoid repeated authentication
 - **Configurable**: Easily switch between AI engines via environment variables
@@ -58,7 +58,7 @@ ai-report/
 1. **Scrape Messages**: Extract today's messages from Microsoft Teams using Playwright
 2. **Extract Date**: Get the last date from messages.json for report naming
 3. **Sanitize Data**: Redact sensitive information (PII, secrets, credentials, keywords) from scraped messages
-4. **Build Prompt**: Create a prompt with fixed TMA Solutions branding + dynamic categories
+4. **Build Prompt**: Create a prompt with fixed organization branding + dynamic categories
 5. **AI Generation**: Send sanitized prompt to Claude, Gemini, or Cohere, wait for HTML artifact generation
 6. **Email Report**: Send the generated HTML report via email
 

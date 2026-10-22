@@ -2,7 +2,7 @@
  * Pipeline:
  *  1. Scrape today's messages from MS Teams  (ms-team.js)
  *  2. Extract the last date from app-data/messages.json
- *  3. Build prompt — fixed TMA Solutions branding + dynamic categories
+ *  3. Build prompt — fixed organization branding + dynamic categories
  *  4. Send to Claude, wait for generation, download the HTML artifact  (claude.js)
  */
 const path = require("path");
