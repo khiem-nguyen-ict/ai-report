@@ -6,38 +6,13 @@ An automated system that scrapes messages from Microsoft Teams, processes them w
 
 ```
 ai-report/
-├── index.js                  # Main entry point - orchestrates the pipeline
-├── package.json              # Project dependencies and scripts
-├── .env.sample               # Environment variables template
 ├── run.sh                    # Shell script to run the application
 ├── src/
 │   ├── services/             # Service implementations
-│   │   ├── ms-team.js        # Microsoft Teams scraping (Playwright)
-│   │   ├── claude.js         # Claude AI interaction
-│   │   ├── gemini.js         # Gemini AI interaction
-│   │   ├── cohere.js         # Cohere API interaction (no browser)
-│   │   ├── send-mail.js      # Email sending functionality
-│   │   └── kakao-talk.sh     # KakaoTalk automation (macOS only)
 │   ├── templates/            # Template processing
-│   │   ├── prompt-template.js # Prompt builder for AI
-│   │   ├── prompt.txt         # Static prompt text with placeholders
-│   │   ├── brand.css          # Company brand CSS spec
-│   │   └── artifact-template.html # HTML artifact template
 │   ├── utils/                # Utility functions
-│   │   ├── index.js          # Date extraction, report title generation, browser cleanup
-│   │   └── sanitize.js       # Data sanitization and sensitive information redaction
 │   └── tests/                # Test files
-│       ├── test-utils.js
-│       ├── test-gemini.js
-│       ├── cohere-test.js    # Cohere service test
-│       ├── test-mail.js
-│       └── test-sanitize.js  # Sanitization unit tests
 ├── app-data/                 # Data storage (messages, prompts, reports)
-│   ├── messages.json         # Scraped Teams messages in JSON format
-│   ├── messages.txt          # Scraped Teams messages in text format
-│   ├── prompt_sent.txt       # Last prompt sent to AI
-│   ├── sanitization-report.json # Audit log of redacted sensitive data
-│   └── report_*.html         # Generated HTML reports
 └── teams-profile/            # Persistent browser profile for Teams
 ```
 
