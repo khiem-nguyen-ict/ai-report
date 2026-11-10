@@ -4,4 +4,8 @@ teams-profile/
 app-data/
 .zimbra-session
 .env
+.env*
+.env-*
+!.env.sample
 .DS_Store
+.kilo

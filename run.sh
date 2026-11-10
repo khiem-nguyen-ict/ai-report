@@ -21,10 +21,56 @@ echo "PATH: $PATH"
 # 🔥 Move to script directory (important for relative paths)
 cd "$SCRIPT_DIR"
 
+# 🔥 Parse arguments: --env-file / -e before loading .env
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"
+notify_only=false
+node_args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --env-file)
+            [[ $# -lt 2 ]] && { echo "❌ --env-file requires a value" >&2; exit 1; }
+            ENV_FILE="$2"
+            shift 2
+            ;;
+        --env-file=*)
+            ENV_FILE="${1#--env-file=}"
+            shift
+            ;;
+        -e)
+            [[ $# -lt 2 ]] && { echo "❌ -e requires a value" >&2; exit 1; }
+            ENV_FILE="$2"
+            shift 2
+            ;;
+        -e=*)
+            ENV_FILE="${1#-e=}"
+            shift
+            ;;
+        --notify)
+            notify_only=true
+            shift
+            ;;
+        *)
+            node_args+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ "$notify_only" == true ]]; then
+    node_args+=("--notify")
+fi
+
+# 🔥 Resolve env file path relative to SCRIPT_DIR
+if [[ "$ENV_FILE" != /* ]]; then
+    ENV_FILE="${SCRIPT_DIR}/${ENV_FILE}"
+fi
+
+# 🔥 Export ENV_FILE so child processes (node, kakao-talk.sh) can access it
+export ENV_FILE
+
 # 🔥 Load .env safely
-ENV_FILE="${SCRIPT_DIR}/.env"
 if [[ -f "$ENV_FILE" ]]; then
-    echo "Loading .env file..."
+    echo "Loading env file: $ENV_FILE"
 
     while IFS='=' read -r key value; do
         # Skip empty lines and comments
@@ -46,22 +92,8 @@ if [[ -f "$ENV_FILE" ]]; then
         export "$key"="$value"
     done < "$ENV_FILE"
 else
-    echo "⚠️ .env file not found at $ENV_FILE"
-fi
-
-# 🔥 Determine notify-only flag
-notify_only=false
-node_args=()
-for arg in "$@"; do
-    if [[ "$arg" == "--notify" ]]; then
-        notify_only=true
-    else
-        node_args+=("$arg")
-    fi
-done
-
-if [[ "$notify_only" == true ]]; then
-    node_args+=("--notify")
+    echo "❌ Env file not found: $ENV_FILE"
+    exit 1
 fi
 
 # 🔥 Run Node script

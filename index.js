@@ -6,9 +6,18 @@
  *  4. Send to Claude, wait for generation, download the HTML artifact  (claude.js)
  */
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
-
 const fs = require("fs");
+
+const envFile = process.env.ENV_FILE
+  ? path.resolve(__dirname, process.env.ENV_FILE)
+  : path.join(__dirname, ".env");
+
+if (!fs.existsSync(envFile)) {
+  console.error(`❌ Env file not found: ${envFile}`);
+  process.exit(1);
+}
+
+require("dotenv").config({ path: envFile });
 
 // ── Main pipeline ─────────────────────────────────────────────────────────
 

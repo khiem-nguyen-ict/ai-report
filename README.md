@@ -206,6 +206,20 @@ Notify-only mode (send a random reminder to MS Teams without generating a report
 ./run.sh --notify
 ```
 
+Specify a custom environment file (default is `.env`):
+```bash
+./run.sh --env-file .env-other-project
+./run.sh -e .env-production
+./run.sh --env-file=.env-staging --notify
+```
+
+Alternatively, set the `ENV_FILE` environment variable (works with direct `node index.js` too):
+```bash
+ENV_FILE=.env-other-project ./run.sh
+ENV_FILE=.env-other-project node index.js
+ENV_FILE=.env-other-project node index.js --notify
+```
+
 ### Direct Node.js
 
 Run the report generation pipeline:
@@ -223,6 +237,35 @@ Notify mode:
 node index.js --notify
 ```
 
+### Multiple Environment Files
+
+You can run the pipeline against different project configurations by providing a separate `.env` file for each project. `.env` is always the default.
+
+Create project-specific files from `.env.sample`, e.g. `.env-other-project`, `.env-production`, `.env-staging`, each with different values for `MS_TEAM_GROUP_NAME`, `AI_ENGINE`, `COMPANY`, etc.
+
+Then run:
+```bash
+# Default project (.env)
+./run.sh
+
+# Project 2
+./run.sh --env-file .env-other-project
+./run.sh -e .env-production
+
+# Custom env file with notify-only
+./run.sh --env-file .env-staging --notify
+
+# Via environment variable (also works with direct node index.js)
+ENV_FILE=.env-other-project ./run.sh
+```
+
+**Rules:**
+- If both `ENV_FILE` env var and `--env-file`/`-e` flag are given, the flag wins.
+- Relative paths are resolved against the script/`index.js` directory.
+- A missing env file is a hard error with a clear message (pipeline aborts).
+- `ENV_FILE` is exported so it's available to `index.js` and to `kakao-talk.sh`.
+- `npm run start -- --env-file .env-other-project` works, but `./run.sh --env-file .env-other-project` is the recommended CLI interface.
+
 The application will:
 1. Launch browser windows for Teams and AI interaction
 2. Prompt for manual login if needed (only first time)
@@ -238,6 +281,7 @@ The application will:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
+| `ENV_FILE` | Path to a custom `.env` file to load instead of the default `.env`. Can be relative (resolved against `run.sh`/`index.js` directory) or absolute. | No |
 | `MS_TEAM_GROUP_NAME` | Primary Microsoft Teams group to scrape | Yes |
 | `ADDITIONAL_MS_TEAM_GROUP_NAME` | Additional Teams group to scrape (optional) | No |
 | `AI_ENGINE` | AI engine to use: `CLAUDE`, `GEMINI`, or `COHERE` | Yes |
