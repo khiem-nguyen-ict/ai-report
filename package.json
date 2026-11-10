@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node src/tests/test-sanitize.js"
+    "test": "node src/tests/test-sanitize.js",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",

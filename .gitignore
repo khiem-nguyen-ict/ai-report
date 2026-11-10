@@ -5,3 +5,4 @@ app-data/
 .zimbra-session
 .env
 .DS_Store
+.kilo
