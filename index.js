@@ -2,8 +2,10 @@
  * Pipeline:
  *  1. Scrape today's messages from MS Teams  (ms-team.js)
  *  2. Extract the last date from app-data/messages.json
- *  3. Build prompt — fixed company branding + dynamic categories
- *  4. Send to Claude, wait for generation, download the HTML artifact  (claude.js)
+ *  3. Sanitize the message log
+ *  4. Build data prompt (JSON-request, no CSS/HTML embedding)
+ *  5. Generate structured report JSON via selected AI engine (claude/gemini/cohere)
+ *  6. Render final branded HTML locally and validate before sending
  */
 const path = require("path");
 const fs = require("fs");
@@ -46,7 +48,6 @@ async function main(notifyOnly = false) {
     `app-data/report_${reportDate.replace(/\//g, "-")}.html`,
   );
   const emailSubject = getReportTitle(reportDate);
-  // Email subject is not used in LLM implementation but kept for API compatibility
   console.log("📧 Email subject:", emailSubject);
 
   const dailyReportText = fs.readFileSync(
@@ -63,34 +64,72 @@ async function main(notifyOnly = false) {
   writeReport(report);
 
   const { buildPrompt } = require("./src/templates/prompt-template");
-  const prompt = buildPrompt(reportDate, sanitizedText, emailSubject);
+  const prompt = buildPrompt(reportDate, sanitizedText);
   fs.writeFileSync(
     path.join(__dirname, "app-data/prompt_sent.txt"),
     prompt,
     "utf-8",
   );
 
-  // Generate the report via the configured AI engine (Gemini, Claude or Cohere).
-  // After generation, the file at reportFilename must contain valid HTML.
-  // If the AI returns plain text or an error page instead, the pipeline
-  // exits here with an error message (see validation block below).
+  // Generate structured report JSON via the configured AI engine, then render
+  // final branded HTML locally. On parse/validation failure, save raw response
+  // for debugging and abort before sending.
+  const { renderReportHtml } = require("./src/templates/render-report");
+  let reportData;
 
-  if (process.env.AI_ENGINE === "GEMINI") {
-    const { sendToGeminiAndDownload } = require("./src/services/gemini");
-    await sendToGeminiAndDownload(prompt, reportFilename);
-  } else if (process.env.AI_ENGINE === "CLAUDE") {
-    const { sendToClaudeAndDownload } = require("./src/services/claude");
-    await sendToClaudeAndDownload(prompt, reportFilename);
-  } else if (process.env.AI_ENGINE === "COHERE") {
-    const { sendToCohereAndSave } = require("./src/services/cohere");
-    await sendToCohereAndSave(prompt, reportFilename);
-  } else {
-    console.error("No AI engine configurated. Abort");
-    process.exit(1);
+  try {
+    if (process.env.AI_ENGINE === "GEMINI") {
+      const { generateReportData } = require("./src/services/gemini");
+      reportData = await generateReportData(prompt);
+    } else if (process.env.AI_ENGINE === "CLAUDE") {
+      const { generateReportData } = require("./src/services/claude");
+      reportData = await generateReportData(prompt);
+    } else if (process.env.AI_ENGINE === "COHERE") {
+      const { generateReportData } = require("./src/services/cohere");
+      reportData = await generateReportData(prompt);
+    } else {
+      console.error("No AI engine configurated. Abort");
+      process.exit(1);
+    }
+  } catch (error) {
+    const engine = process.env.AI_ENGINE || "UNKNOWN";
+    const raw =
+      error?.rawResponse ??
+      error?.rawJsonText ??
+      error?.response?.data ??
+      error?.cause?.rawResponse ??
+      "";
+    if (raw) {
+      const debugPath = path.join(
+        __dirname,
+        `app-data/llm_raw_response_${String(engine).toLowerCase()}.txt`,
+      );
+      try {
+        const payload =
+          typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
+        fs.writeFileSync(debugPath, payload, "utf-8");
+        console.error(`   Raw response saved to: ${debugPath}`);
+      } catch (_) {}
+    }
+    const snippet =
+      typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500);
+    if (snippet) console.error(`   Raw response snippet: ${snippet}`);
+    throw new Error(
+      `Failed to obtain/parse report JSON from ${engine}: ${error?.message || error}`,
+    );
   }
 
+  const html = renderReportHtml(reportData, {
+    emailSubject,
+    reportTitle: process.env.PROJECT || emailSubject,
+    company: process.env.COMPANY,
+    author: process.env.FROM_NAME,
+    reportDate,
+  });
+  fs.mkdirSync(path.dirname(reportFilename), { recursive: true });
+  fs.writeFileSync(reportFilename, html, "utf-8");
+
   // Read the generated report file and verify it is valid HTML content.
-  // If the AI returned plain text or an error page instead of HTML, exit.
   const reportContent = fs.readFileSync(reportFilename, "utf-8").trim();
   const htmlStart = reportContent.slice(0, 200);
   const isHtml =

@@ -24,16 +24,7 @@
     <div class="section" id="task-list">
       <div class="section-title">Task Progress</div>
       <div class="section-body">
-        <ol class="task-list">
-          <!-- For each category and its tasks: -->
-          <li>
-            <div class="task-category">[Category Name]</div>
-            <ul class="sub-list">
-              <li>[Sub-task description as raw text] ([On-Going / Done]). [Expected Date if any]</li>
-            </ul>
-          </li>
-          <!-- ... continue for all tasks ... -->
-        </ol>
+        {{TASK_PROGRESS}}
       </div>
     </div>
 
@@ -41,19 +32,7 @@
     <div class="section" id="summary">
       <div class="section-title">Daily Summary</div>
       <div class="section-body">
-        <div class="status-row">
-          <span class="status-label">Overall Status:</span>
-          <!-- Use badge-green, badge-yellow, badge-orange, or badge-red based on status -->
-          <span class="badge badge-[green|yellow|orange|red]">[Green / Yellow / Orange / Red]</span>
-        </div>
-        <div class="summary-row"><strong>Summary:</strong> [1-2 sentence summary]</div>
-        <div class="summary-row"><strong>Issues:</strong> [None or 1-2 sentences]</div>
-        <div class="summary-row">
-          <strong>Actions:</strong>
-          <ul class="action-list">
-            <li>[Action item]</li>
-          </ul>
-        </div>
+        {{SUMMARY_BLOCK}}
       </div>
     </div>
 
@@ -67,19 +46,7 @@
             </tr>
             </thead>
             <tbody>
-            <!-- For each person: -->
-            <tr>
-                <td>[N]</td>
-                <td>[Name]</td>
-                <td>[Role]</td>
-                <td><span class="billable-yes">Yes</span></td>
-                <td>
-                <div class="effort-bar">
-                    <div class="bar-track"><div class="bar-fill" style="width:[X]%"></div></div>
-                    <span class="bar-label">[X]%</span>
-                </div>
-                </td>
-            </tr>
+              {{HR_ROWS}}
             </tbody>
         </table>
     </div>

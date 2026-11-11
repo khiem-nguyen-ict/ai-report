@@ -1,6 +1,7 @@
 const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
+const { parseReportJson } = require("../templates/render-report");
 
 const USER_DATA_DIR = "./user-data";
 
@@ -28,7 +29,7 @@ async function closeBrowser() {
 async function getPage() {
   // Clean up stale browser lock files before launching
   const { cleanupStaleBrowserFiles } = require("../utils/index");
-cleanupStaleBrowserFiles(USER_DATA_DIR);
+  cleanupStaleBrowserFiles(USER_DATA_DIR);
 
   if (_page && !_page.isClosed()) return _page;
 
@@ -120,9 +121,26 @@ async function findDownloadButton(page, timeout = 20_000) {
   return null;
 }
 
+async function tryExtractResponseText(page) {
+  try {
+    const text = await page.evaluate(() => {
+      const blocks = Array.from(
+        document.querySelectorAll(
+          'div[class*="contents"], div.font-claude-response, .prose, pre code',
+        ),
+      );
+      if (!blocks.length) return "";
+      return blocks[blocks.length - 1].innerText || "";
+    });
+    return (text || "").trim();
+  } catch (_) {
+    return "";
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────
 
-async function sendToClaudeAndDownload(prompt, outputPath) {
+async function generateReportData(prompt) {
   const page = await getPage();
 
   await page.goto("https://claude.ai/new", { waitUntil: "domcontentloaded" });
@@ -153,52 +171,65 @@ async function sendToClaudeAndDownload(prompt, outputPath) {
 
   await waitForStreamingComplete(page);
 
-  // ── Find and click the artifact Download button ───────────────────────
+  // ── Prefer artifact Download (if present), then DOM text fallback ──────
   console.log("🔍 Looking for Download button…");
-
-  const exists = await page.evaluate(
-    () => !!document.querySelector('button[aria-label="Download"]'),
-  );
-
+  let rawResponse = "";
   let downloadButton = null;
   try {
     downloadButton = await findDownloadButton(page, 20_000);
-    if (!downloadButton) throw new Error("Button not found");
-  } catch {
+  } catch (_) {
+    downloadButton = null;
+  }
+
+  if (downloadButton) {
+    console.log("🖱️  Found Download button — downloading artifact…");
+    const tmpPath = path.resolve(
+      path.join(__dirname, "../../app-data/claude-artifact-download.tmp"),
+    );
+    try {
+      const [download] = await Promise.all([
+        page.waitForEvent("download", { timeout: DOWNLOAD_TIMEOUT }),
+        downloadButton.click(),
+      ]);
+      await download.saveAs(tmpPath);
+      rawResponse = fs.readFileSync(tmpPath, "utf8");
+    } catch (err) {
+      console.warn(`⚠️  Artifact download failed: ${err.message}`);
+    } finally {
+      try {
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+      } catch (_) {}
+    }
+  } else {
+    console.log("ℹ️  Download button not found; trying DOM text extraction.");
+  }
+
+  if (!rawResponse) {
+    rawResponse = await tryExtractResponseText(page);
+  }
+
+  if (!rawResponse) {
     await page
       .screenshot({
-        path: path.join(__dirname, "../../app-data/debug-no-download-btn.png"),
+        path: path.join(__dirname, "../../app-data/debug-no-claude-response.png"),
         fullPage: false,
       })
       .catch(() => {});
+    await closeBrowser();
     throw new Error(
-      "❌ Could not find the artifact Download button after generation completed.\n" +
-        "   Screenshot saved to debug-no-download-btn.png\n" +
-        "   Make sure the prompt instructs Claude to create an HTML artifact.",
+      "❌ Could not obtain Claude response content (no downloadable artifact and no readable DOM text).",
     );
   }
 
-  await downloadButton.scrollIntoViewIfNeeded();
-  await page
-    .screenshot({
-      path: path.join(__dirname, "../../app-data/debug-before-download.png"),
-      fullPage: false,
-    })
-    .catch(() => {});
-  console.log("🖱️  Found Download button — clicking…");
-
-  const [download] = await Promise.all([
-    page.waitForEvent("download", { timeout: DOWNLOAD_TIMEOUT }),
-    downloadButton.click(),
-  ]);
-
-  const absPath = path.resolve(outputPath);
-  await download.saveAs(absPath);
-  console.log(`✅ File saved to: ${absPath}`);
-
-  await closeBrowser();
-
-  return absPath;
+  try {
+    const reportData = parseReportJson(rawResponse);
+    await closeBrowser();
+    return reportData;
+  } catch (err) {
+    await closeBrowser();
+    err.rawResponse = rawResponse;
+    throw err;
+  }
 }
 
-module.exports = { sendToClaudeAndDownload };
+module.exports = { generateReportData };
