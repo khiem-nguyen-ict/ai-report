@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node src/tests/test-sanitize.js",
+    "test": "node src/tests/test-sanitize.js && node src/tests/test-render-report.js && node src/tests/test-prompt-template.js",
     "start": "node index.js"
   },
   "keywords": [],

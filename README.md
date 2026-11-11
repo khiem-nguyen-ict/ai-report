@@ -16,12 +16,14 @@ ai-report/
 └── teams-profile/            # Persistent browser profile for Teams
 ```
 
+> For day-to-day operations, see [AGENTS.md](./AGENTS.md) — the detailed operations guide covering the directory map, commands table, code conventions, protected paths, and troubleshooting.
+
 ## Features
 
 - **Microsoft Teams Integration**: Automatically logs into Teams (saves session for future runs) and scrapes messages from specified groups
 - **AI Processing**: Sends scraped messages to Claude AI, Gemini AI, or the Cohere API for report generation
 - **Report Generation**: Creates professional HTML reports with organization branding
-- **Email Delivery**: Sends generated reports via email using Nodemailer
+- **Email Delivery**: Sends generated reports via Zimbra Classic webmail using Playwright
 - **Persistent Sessions**: Maintains login sessions to avoid repeated authentication
 - **Configurable**: Easily switch between AI engines via environment variables
 - **Customizable Reminders**: Configurable random reminder messages for MS Teams notify mode
@@ -30,16 +32,17 @@ ai-report/
 
 ## Pipeline
 
-1. **Scrape Messages**: Extract today's messages from Microsoft Teams using Playwright
-2. **Extract Date**: Get the last date from messages.json for report naming
-3. **Sanitize Data**: Redact sensitive information (PII, secrets, credentials, keywords) from scraped messages
-4. **Build Prompt**: Create a prompt with fixed organization branding + dynamic categories
-5. **AI Generation**: Send sanitized prompt to Claude, Gemini, or Cohere, wait for HTML artifact generation
-6. **Email Report**: Send the generated HTML report via email
+1. **Scrape Messages**: Extract today's messages from Microsoft Teams using Playwright (persistent `teams-profile/`)
+2. **Extract Date**: Derive report date from `app-data/messages.json` and build the email/report title using week/sprint config
+3. **Sanitize Data**: Redact sensitive information (PII, secrets, credentials, keywords) from scraped messages; writes audit report to `app-data/sanitization-report.json`
+4. **Build Prompt**: Create a JSON-schema request prompt (no CSS/HTML) from `prompt.txt`, env-driven HR config, and sanitized log
+5. **AI Generation**: Generate structured report JSON via the configured engine (Claude, Gemini, or Cohere); every engine exports `generateReportData(prompt) → Object`
+6. **Render + Validate HTML**: Render branded HTML locally from `brand.css` + `artifact-template.html`; `index.js` aborts if output is not a valid HTML document
+7. **Email Report**: Send the HTML report through Zimbra Classic webmail via Playwright using `.zimbra-session/`
 
 ## AI Engines
 
-Set `AI_ENGINE` in `.env` to pick the engine. All three consume the same prompt and must produce a complete HTML document at the target path — `index.js` validates the output is HTML and aborts if it isn't.
+Set `AI_ENGINE` in `.env` to pick the engine. All three consume the same sanitized prompt and return structured report JSON via `generateReportData(prompt) → Object`. HTML is then rendered locally by `src/templates/render-report.js`; `index.js` aborts if the rendered output is not a valid HTML document.
 
 | `AI_ENGINE` | Service | Interface | Requires |
 |--------------|---------|-----------|----------|
@@ -53,7 +56,8 @@ Cohere is the only engine that uses a direct API call rather than browser automa
 
 - Get a key at [dashboard.cohere.com](https://dashboard.cohere.com); a trial key is created automatically with the account.
 - Set `COHERE_API_KEY` (and optionally `COHERE_MODEL`, default `command-a-03-2025`).
-- The service posts to the Cohere v2 Chat API with a system prompt that asks for a complete, self-contained HTML document with inline CSS, then strips any markdown fences the model may wrap the answer in.
+- The service posts to the Cohere v2 Chat API with a system prompt that demands raw JSON only (no markdown fences), then parses the response into report data.
+- Retries transient failures (408, 425, 429, 422 `NO_VALID_RESPONSE_GENERATED`, 5xx) with exponential backoff (up to 4 attempts).
 - Standalone test: `node src/tests/cohere-test.js` (makes two billable API calls).
 
 #### Cohere free/trial API limitations
@@ -289,21 +293,30 @@ The application will:
 | `COHERE_MODEL` | Cohere model name (default: `command-a-03-2025`) | No |
 | `MAX_CHAT_SCROLL_UP` | Maximum scroll ups to load messages (default: 5) | No |
 | `PLAYWRIGHT_SLOWMO` | Slow down Playwright actions (ms, default: 300) | No |
+| `ZIMBRA_URL` | Zimbra Classic webmail URL | Yes |
+| `FROM_NAME` | Sender display name | Yes |
+| `EMAIL_USER` | Email username for sending reports | Yes |
+| `EMAIL_PASS` | Email password/app password | Yes |
+| `TO_RECIPIENTS` | Recipient email address(es) | Yes |
+| `CC_RECIPIENTS` | CC recipient email address(es) | No |
+| `COMPANY` | Company name used in report branding | No |
+| `CLIENT` | Client name used in report branding | No |
+| `PROJECT` | Project name used in report title | No |
+| `PROJECT_START_DATE` | Project start date (`yyyy/mm/dd`) for sprint/week calc | No |
+| `START_SPRINT` | Starting sprint number | No |
+| `START_WEEK` | Starting week number | No |
+| `NUMBER_OF_WEEKS_PER_SPRINT` | Weeks per sprint | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
 | `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
 | `REMINDER_MESSAGES` | JSON array of random reminder messages for MS Teams notify mode | No |
-| `EMAIL_USER` | Email username for sending reports | Yes |
-| `EMAIL_PASS` | Email password/app password | Yes |
-| `EMAIL_TO` | Recipient email address | Yes |
 | `SANITIZATION_MODE` | Sanitization strictness: `strict`, `balanced`, `lenient`, or `audit` (default: `balanced`) | No |
 | `SENSITIVE_KEYWORDS` | Comma-separated project-sensitive keywords to redact | No |
 | `SANITIZATION_ALLOWLIST` | Comma-separated strings to never redact | No |
 
 ## Dependencies
 
-- **Playwright**: Browser automation for Teams and AI interaction
+- **Playwright**: Browser automation for Teams, AI platforms, and Zimbra webmail
 - **Dotenv**: Environment variable loading
-- **Nodemailer**: Email sending functionality
 - **Axios**: HTTP client, used by the Cohere service
 - **cliclick**: Command-line mouse click tool for KakaoTalk automation (macOS only)
 
@@ -324,38 +337,44 @@ The application will:
 
 ### Prompt Building (`src/templates/prompt-template.js`)
 - Reads static prompt text from `prompt.txt` with `{{PLACEHOLDER}}` tokens
-- Injects dynamic values: company name, HR config (from `.env`), CSS brand spec (`brand.css`), and HTML artifact template (`artifact-template.html`)
-- Creates structured prompts for AI report generation
+- Injects dynamic values: company name, author, HR config (from `.env`)
+- Creates a JSON-schema request prompt (no CSS/HTML) for AI report generation
 
 ### AI Processing (`claude.js`/`gemini.js`/`cohere.js`)
 - Claude and Gemini launch persistent browser contexts for the AI platforms
 - Submits prompts and waits for response completion
-- For Claude: Waits for artifact generation and downloads HTML
-- For Gemini: Extracts generated text and saves as HTML
-- For Cohere: Calls the v2 Chat API over HTTPS (no browser) and writes the returned HTML directly
+- Every engine exports `generateReportData(prompt) → Object` returning structured report JSON
+- HTML is rendered locally afterward by `src/templates/render-report.js`
 
 ### Cohere Service (`src/services/cohere.js`)
-- `generateHtml(prompt, options?)` returns the generated HTML as a string
-- `sendToCohereAndSave(prompt, outputPath, options?)` also writes the HTML to disk
-- Options: `model`, `temperature` (0.3), `maxTokens` (8192), `systemPrompt`, `preamble`
+- `generateReportData(prompt, options?)` returns parsed report JSON
+- Options: `model`, `temperature` (0.3), `maxTokens` (8192), `systemPrompt`, `preamble`, `maxRetries`, `retryBaseDelayMs`
+- Retries transient failures (408, 425, 429, 422 `NO_VALID_RESPONSE_GENERATED`, 5xx) with exponential backoff
 - Throws on a missing key, an empty prompt, an empty response, or a failed request
 - See [Cohere free API limitations](#cohere-freetrial-api-limitations) before relying on a trial key
 
-### Email Delivery (`send-mail.js`)
-- Uses Nodemailer to send HTML reports as email attachments
-- Configurable recipient, subject, and sender
+### Email Delivery (`src/services/send-mail.js`)
+- Sends the generated HTML report through Zimbra Classic webmail using Playwright
+- Uses a persistent browser session stored in `.zimbra-session/`; manual login only on first run
+- Prompts the user to confirm before actually sending (macOS dialog, falls back to terminal prompt)
+- Recipients and CC are read from `TO_RECIPIENTS` / `CC_RECIPIENTS` in `.env`
 
 ## Testing
 
-Run the sanitization test suite:
+Run the offline unit test suite (sanitization, HTML renderer, prompt builder):
 ```bash
 npm test
 ```
 
-Run the Cohere service test (requires `COHERE_API_KEY`, makes two live API calls):
-```bash
-node src/tests/cohere-test.js
-```
+Available test files:
+- `src/tests/test-sanitize.js` — sanitization unit tests
+- `src/tests/test-render-report.js` — renderer / JSON-parsing unit tests
+- `src/tests/test-prompt-template.js` — prompt builder unit tests
+
+Integration tests (require live credentials/API keys; not run by `npm test`):
+- `node src/tests/cohere-test.js` — Cohere `generateReportData()` (requires `COHERE_API_KEY`, makes two billable API calls)
+- `RUN_GEMINI_INTEGRATION=1 node src/tests/test-gemini.js` — Gemini live test (skipped unless the flag is set)
+- `node src/tests/test-mail.js` — Mail send test
 
 ## Notes
 

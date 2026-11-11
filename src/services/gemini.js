@@ -3,7 +3,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 chromium.use(StealthPlugin());
 
 const path = require("path");
-const fs = require("fs");
+const { parseReportJson } = require("../templates/render-report");
 
 const USER_DATA_DIR = "./user-data";
 
@@ -110,12 +110,10 @@ async function waitForLLMResponseComplete(page) {
             const textElem = r[r.length - 1];
             if (textElem) {
               let text = textElem.innerText.trim();
-              // Strip markdown code fences and common HTML prefixes the LLM
-              // may prepend (e.g. "```html", "HTML", "```").
+              // Strip markdown code fences the LLM may prepend.
               text = text
-                .replace(/^```(?:html)?\s*/i, "")
-                .replace(/```\s*$/, "")
-                .replace(/^HTML\s*/i, "")
+                .replace(/^```(?:json)?\s*/i, "")
+                .replace(/```\s*$/i, "")
                 .trim();
               return { status: "completed", data: text };
             }
@@ -138,7 +136,7 @@ async function waitForLLMResponseComplete(page) {
 }
 
 // ── Main export ───────────────────────────────────────────────────────────
-async function sendToGeminiAndDownload(prompt, outputPath) {
+async function generateReportData(prompt) {
   const page = await getPage();
 
   // Focus the editor and insert prompt
@@ -185,14 +183,17 @@ async function sendToGeminiAndDownload(prompt, outputPath) {
 
   // Wait until generation stops
   const responseText = await waitForLLMResponseComplete(page);
+  console.log(`✅ Received ${responseText.length} characters from Gemini.`);
 
-  // Save to file
-  const absPath = path.resolve(outputPath);
-  fs.writeFileSync(absPath, responseText, "utf8");
-  console.log(`✅ Response saved to: ${absPath}`);
-
-  await closeBrowser();
-  return absPath;
+  try {
+    const reportData = parseReportJson(responseText);
+    await closeBrowser();
+    return reportData;
+  } catch (err) {
+    await closeBrowser();
+    err.rawResponse = responseText;
+    throw err;
+  }
 }
 
-module.exports = { sendToGeminiAndDownload };
+module.exports = { generateReportData };

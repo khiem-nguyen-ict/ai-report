@@ -1,11 +1,11 @@
 /**
- * Cohere service — send a text prompt and receive the generated HTML as a string.
+ * Cohere service — send a prompt and receive generated report JSON.
  *
  * Requires COHERE_API_KEY in the environment (.env).
  */
 const path = require("path");
-const fs = require("fs");
 const axios = require("axios");
+const { parseReportJson } = require("../templates/render-report");
 
 // Load .env (project root) if it has not been loaded already
 if (!process.env.COHERE_API_KEY) {
@@ -25,11 +25,10 @@ const DEFAULT_RETRY_BASE_DELAY_MS = 4000;
 const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const RETRYABLE_ERROR_TYPES = new Set(["NO_VALID_RESPONSE_GENERATED"]);
 
-const HTML_SYSTEM_PROMPT = [
-  "You are a senior technical writer who produces polished HTML documents.",
-  "Reply with raw HTML only: no markdown, no code fences, no commentary.",
-  "Always return a complete, self-contained HTML document (doctype, head, body).",
-  "Use inline <style> blocks for CSS; do not reference external assets.",
+const JSON_SYSTEM_PROMPT = [
+  "You are a senior project coordinator who produces structured daily report data.",
+  "Reply with raw JSON only: no markdown, no code fences, no commentary.",
+  "Always return a single valid JSON object matching the requested schema.",
 ].join(" ");
 
 function getApiKey() {
@@ -40,17 +39,6 @@ function getApiKey() {
     );
   }
   return key;
-}
-
-/** Strip markdown fences / stray prose so only the HTML document remains. */
-function extractHtml(text) {
-  if (typeof text !== "string") return "";
-  let html = text.trim();
-
-  const fence = html.match(/^```(?:html)?\s*([\s\S]*?)\s*```$/i);
-  if (fence) html = fence[1];
-
-  return html.trim();
 }
 
 /** Build a short, human-readable message for a failed Cohere call. */
@@ -101,7 +89,7 @@ function isRetryableError(error) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Send a prompt to Cohere and return the generated HTML string.
+ * Send a prompt to Cohere and return the parsed report JSON object.
  *
  * @param {string} prompt            The prompt text.
  * @param {object} [options]
@@ -112,9 +100,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * @param {string} [options.preamble] Extra user text prepended before the prompt.
  * @param {number} [options.maxRetries] Attempts after the first one (default: 3).
  * @param {number} [options.retryBaseDelayMs] Exponential backoff base (default: 4000).
- * @returns {Promise<string>} HTML text.
+ * @returns {Promise<object>} Parsed report data.
  */
-async function generateHtml(prompt, options = {}) {
+async function generateReportData(prompt, options = {}) {
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     throw new Error("❌ A non-empty prompt string is required.");
   }
@@ -123,15 +111,13 @@ async function generateHtml(prompt, options = {}) {
     model = process.env.COHERE_MODEL || DEFAULT_MODEL,
     temperature = DEFAULT_TEMPERATURE,
     maxTokens = DEFAULT_MAX_TOKENS,
-    systemPrompt = HTML_SYSTEM_PROMPT,
+    systemPrompt = JSON_SYSTEM_PROMPT,
     preamble = "",
     maxRetries = DEFAULT_MAX_RETRIES,
     retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS,
   } = options;
 
-  const userMessage = preamble
-    ? `${preamble}\n\n${prompt}`
-    : prompt;
+  const userMessage = preamble ? `${preamble}\n\n${prompt}` : prompt;
 
   const payload = {
     model,
@@ -167,7 +153,7 @@ async function generateHtml(prompt, options = {}) {
     }
 
     console.log(
-      `🧠 Asking Cohere (${model})… [attempt ${attempt}/${attempts}]`,
+      `🧠 Asking Cohere (${model}) for report JSON… [attempt ${attempt}/${attempts}]`,
     );
 
     try {
@@ -184,22 +170,12 @@ async function generateHtml(prompt, options = {}) {
         throw error;
       }
 
-      if (!/<html[\s>]/i.test(text)) {
-        const error = new Error(
-          "❌ Cohere response is not an HTML document.",
-        );
-        error.response = { status: 422, data: {} };
-        error.isRetryable = true;
-        throw error;
-      }
-
-      const html = extractHtml(text);
-      console.log(`✅ Received ${html.length} characters of HTML.`);
-      return html;
+      const reportData = parseReportJson(text);
+      console.log(`✅ Received ${text.length} characters of JSON from Cohere.`);
+      return reportData;
     } catch (error) {
       lastError = error;
-      const retryable =
-        error.isRetryable === true || isRetryableError(error);
+      const retryable = error.isRetryable === true || isRetryableError(error);
       const message = describeCohereError(error);
 
       if (!retryable || attempt === attempts) {
@@ -214,24 +190,8 @@ async function generateHtml(prompt, options = {}) {
 
   const err = new Error(describeCohereError(lastError));
   err.cause = lastError;
+  err.rawResponse = lastError?.rawJsonText || lastError?.response?.data;
   throw err;
 }
 
-/**
- * Same as generateHtml(), but also writes the HTML to disk.
- *
- * @param {string} prompt
- * @param {string} outputPath Destination file path.
- * @param {object} [options] See generateHtml().
- * @returns {Promise<string>} The absolute path of the saved file.
- */
-async function sendToCohereAndSave(prompt, outputPath, options = {}) {
-  const html = await generateHtml(prompt, options);
-  const absPath = path.resolve(outputPath);
-  fs.mkdirSync(path.dirname(absPath), { recursive: true });
-  fs.writeFileSync(absPath, html, "utf8");
-  console.log(`✅ Response saved to: ${absPath}`);
-  return absPath;
-}
-
-module.exports = { generateHtml, sendToCohereAndSave };
+module.exports = { generateReportData };

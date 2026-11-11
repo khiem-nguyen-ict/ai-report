@@ -10,10 +10,10 @@ Guidance for coding agents working in this repository.
 |------|-------------|-----------|
 | **Run full pipeline** | `./run.sh` or `node index.js` | `index.js` → `src/services/ms-team.js` → `src/utils/sanitize.js` → `src/templates/prompt-template.js` → AI engine → `src/services/send-mail.js` |
 | **Notify-only (Teams reminder)** | `./run.sh --notify` or `node index.js --notify` | `index.js` → `src/services/ms-team.js:sendReminder()` |
-| **Test sanitization** | `npm test` | `src/tests/test-sanitize.js` → `src/utils/sanitize.js` |
+| **Run offline tests** | `npm test` | `src/tests/test-sanitize.js`, `test-render-report.js`, `test-prompt-template.js` |
 | **Test Cohere API** | `node src/tests/cohere-test.js` | `src/tests/cohere-test.js` → `src/services/cohere.js` |
 | **Change AI engine** | Edit `.env` | `AI_ENGINE=CLAUDE\|GEMINI\|COHERE` |
-| **Modify report template** | Edit template files | `src/templates/prompt.txt`, `brand.css`, `artifact-template.html`, `prompt-template.js` |
+| **Modify report template** | Edit template files | `src/templates/prompt.txt`, `render-report.js`, `brand.css`, `artifact-template.html`, `prompt-template.js` |
 | **Adjust sanitization rules** | Edit `.env` or code | `SANITIZATION_MODE`, `SENSITIVE_KEYWORDS`, `SANITIZATION_ALLOWLIST` in `.env`; `src/utils/sanitize.js` for logic |
 
 ---
@@ -34,13 +34,13 @@ Guidance for coding agents working in this repository.
 1. **Scrape Teams:** `src/services/ms-team.js` opens Teams in Playwright persistent profile `teams-profile/`, collects last-day messages from `MS_TEAM_GROUP_NAME` (and optionally `ADDITIONAL_MS_TEAM_GROUP_NAME`), writes `app-data/messages.json` and `app-data/messages.txt`.
 2. **Date/title:** `src/utils/index.js` derives report date from `messages.json` and builds email/report title using week/sprint config from `.env`.
 3. **Sanitize:** `src/utils/sanitize.js` redacts sensitive data from `messages.txt` and writes audit report to `app-data/sanitization-report.json`.
-4. **Prompt build:** `src/templates/prompt-template.js` combines `prompt.txt`, `brand.css`, `artifact-template.html`, env-driven HR config, and sanitized log.
-5. **AI generation:** selected by `AI_ENGINE` in `.env`:
-   - `CLAUDE` → `src/services/claude.js` (Playwright, persistent `user-data/`, downloads artifact)
+4. **Prompt build:** `src/templates/prompt-template.js` combines `prompt.txt` (JSON-schema request, no CSS/HTML), env-driven HR config, and sanitized log.
+5. **AI generation (structured JSON):** selected by `AI_ENGINE` in `.env`. Every engine exports `generateReportData(prompt) → Object` (parsed report JSON via `parseReportJson`):
+   - `CLAUDE` → `src/services/claude.js` (Playwright, persistent `user-data/`, artifact download or DOM text fallback)
    - `GEMINI` → `src/services/gemini.js` (Playwright + stealth, persistent `user-data/`)
    - `COHERE` → `src/services/cohere.js` (REST API, no browser)
-   Output: `app-data/report_YYYY-MM-DD.html`.
-6. **Validate HTML:** `index.js` aborts if output is not a valid HTML document.
+   On parse failure the raw response is saved to `app-data/llm_raw_response_<engine>.txt` and the pipeline aborts.
+6. **Render + validate HTML:** `src/templates/render-report.js` normalizes the JSON and renders the branded HTML locally from `brand.css` + `artifact-template.html` (all content HTML-escaped) to `app-data/report_YYYY-MM-DD.html`; `index.js` aborts if the output is not a valid HTML document.
 7. **Send mail:** `src/services/send-mail.js` sends report through Zimbra webmail via Playwright using session dir `.zimbra-session/`.
 
 **Notify-only mode:** `node index.js --notify` (or `./run.sh --notify`) only sends a random Teams reminder from `REMINDER_MESSAGES` and skips report generation/mail/KakaoTalk steps.
@@ -60,23 +60,26 @@ ai-report/
 ├── src/
 │   ├── services/
 │   │   ├── ms-team.js          # Teams login/session, group navigation, message scraping, reminder sending
-│   │   ├── claude.js           # Browser automation against claude.ai, artifact download
-│   │   ├── gemini.js           # Browser automation against gemini.google.com/app
-│   │   ├── cohere.js           # Cohere v2 Chat API call, retry/fence-stripping/HTML extraction
+│   │   ├── claude.js           # Browser automation against claude.ai, returns parsed report JSON
+│   │   ├── gemini.js           # Browser automation against gemini.google.com/app, returns parsed report JSON
+│   │   ├── cohere.js           # Cohere v2 Chat API call, retry + JSON parsing, returns parsed report JSON
 │   │   ├── send-mail.js        # Zimbra Classic webmail automation
 │   │   └── kakao-talk.sh       # macOS-only KakaoTalk automation (cliclick, AppleScript)
 │   ├── templates/
 │   │   ├── prompt-template.js  # Builds final prompt from parts
-│   │   ├── prompt.txt          # Base prompt template
+│   │   ├── prompt.txt          # Base prompt template (requests report JSON)
+│   │   ├── render-report.js    # JSON parse/normalize + local branded HTML rendering
 │   │   ├── brand.css           # Fixed report styling
-│   │   └── artifact-template.html # HTML wrapper for AI output
+│   │   └── artifact-template.html # HTML wrapper with {{PLACEHOLDERS}} filled by render-report.js
 │   ├── utils/
 │   │   ├── index.js            # Browser lock cleanup, date/week/sprint/report-title helpers
 │   │   └── sanitize.js         # Regex + Shannon-entropy sanitization, modes/allowlist/keywords, audit report
 │   └── tests/
 │       ├── test-sanitize.js    # Sanitization unit tests (npm test)
+│       ├── test-render-report.js # Renderer/JSON-parsing unit tests (npm test)
+│       ├── test-prompt-template.js # Prompt builder unit tests (npm test)
 │       ├── cohere-test.js      # Cohere API integration test (requires COHERE_API_KEY)
-│       ├── test-gemini.js      # Gemini smoke test
+│       ├── test-gemini.js      # Gemini integration test (skipped unless RUN_GEMINI_INTEGRATION=1)
 │       └── test-mail.js        # Mail send test
 ├── docs/
 │   └── sanitization-spec.md    # Detailed sanitization design/spec
@@ -114,9 +117,9 @@ Copy from `.env.sample`. Important variables:
 | `node index.js` | Full pipeline (Node only, no KakaoTalk) |
 | `./run.sh --notify` | Notify-only: sends Teams reminder, exits |
 | `node index.js --notify` | Notify-only (Node only) |
-| `npm test` | Run sanitization tests (`node src/tests/test-sanitize.js`) |
-| `node src/tests/cohere-test.js` | Test Cohere API (requires `COHERE_API_KEY`, makes real calls) |
-| `node src/tests/test-gemini.js` | Quick Gemini smoke test |
+| `npm test` | Run offline unit tests: sanitization, report renderer, prompt builder |
+| `node src/tests/cohere-test.js` | Test Cohere `generateReportData()` (requires `COHERE_API_KEY`, makes real calls) |
+| `RUN_GEMINI_INTEGRATION=1 node src/tests/test-gemini.js` | Gemini live test (browser session required; skipped without the flag) |
 | `node src/tests/test-mail.js` | Quick mail send test |
 
 > **No lint/build/typecheck scripts** are defined in `package.json`.
