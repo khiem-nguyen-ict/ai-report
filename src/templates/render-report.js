@@ -185,6 +185,7 @@ function renderReportHtml(reportData, meta = {}) {
   const emailSubject = String(meta.emailSubject ?? "");
   const reportTitle = String(meta.reportTitle ?? meta.emailSubject ?? "");
   const company = String(meta.company ?? process.env.COMPANY ?? "Company");
+  const client = String(meta.client ?? process.env.CLIENT ?? "").trim() || "-";
   const author = String(meta.author ?? process.env.FROM_NAME ?? "Khiem Nguyen");
   const reportDate = String(meta.reportDate ?? "");
 
@@ -198,6 +199,7 @@ function renderReportHtml(reportData, meta = {}) {
     EMAIL_SUBJECT: escapeHtml(emailSubject),
     REPORT_TITLE: escapeHtml(reportTitle),
     COMPANY: escapeHtml(company),
+    CLIENT: escapeHtml(client),
     AUTHOR: escapeHtml(author),
     REPORT_DATE: escapeHtml(reportDate),
     TASK_PROGRESS: renderTaskProgress(normalized.taskGroups),

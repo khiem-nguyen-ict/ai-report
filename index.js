@@ -123,6 +123,7 @@ async function main(notifyOnly = false) {
     emailSubject,
     reportTitle: process.env.PROJECT || emailSubject,
     company: process.env.COMPANY,
+    client: process.env.CLIENT,
     author: process.env.FROM_NAME,
     reportDate,
   });

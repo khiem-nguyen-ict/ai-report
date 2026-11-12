@@ -44,6 +44,7 @@ const meta = {
   emailSubject: "Daily Report",
   reportTitle: "Project X",
   company: "Acme",
+  client: "Globex",
   author: "Khiem",
   reportDate: "2026-11-11",
 };
@@ -193,6 +194,23 @@ test("renderReportHtml renders badge, task, effort bar and footer", () => {
   assert.ok(/Prepared by <strong>Khiem<\/strong>/.test(html));
   assert.ok(html.includes("2026-11-11"));
   assert.ok(html.includes("Acme"));
+  assert.ok(html.includes("Globex"));
+});
+
+test("renderReportHtml renders Client meta row right after Company", () => {
+  const html = renderReportHtml(sample, meta);
+  const companyIdx = html.indexOf(">Company<");
+  const clientIdx = html.indexOf(">Client<");
+  const projectIdx = html.indexOf(">Project<");
+  assert.ok(companyIdx !== -1 && clientIdx !== -1 && projectIdx !== -1);
+  assert.ok(companyIdx < clientIdx, "Client must come after Company");
+  assert.ok(clientIdx < projectIdx, "Client must come before Project");
+});
+
+test("renderReportHtml falls back to a dash when client is empty", () => {
+  const html = renderReportHtml(sample, { ...meta, client: "  " });
+  assert.ok(html.includes(">Client<"));
+  assert.ok(html.includes(">-<"));
 });
 
 test("renderReportHtml escapes untrusted content (XSS)", () => {
@@ -207,8 +225,14 @@ test("renderReportHtml escapes untrusted content (XSS)", () => {
     ],
     humanResources: [{ name: "<i>Eve</i>", role: "r", billable: false, effort: 10 }],
   };
-  const html = renderReportHtml(evil, { ...meta, emailSubject: "<x>" });
+  const html = renderReportHtml(evil, {
+    ...meta,
+    emailSubject: "<x>",
+    client: "<script>alert(2)</script>",
+  });
   assert.ok(!html.includes("<script>alert(1)"));
+  assert.ok(!html.includes("<script>alert(2)"));
+  assert.ok(html.includes("&lt;script&gt;alert(2)&lt;/script&gt;"));
   assert.ok(!html.includes("<img src=x"));
   assert.ok(!html.includes("<i>Eve</i>"));
   assert.ok(html.includes("&lt;script&gt;"));
