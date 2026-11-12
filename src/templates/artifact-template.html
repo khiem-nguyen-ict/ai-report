@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,27 +9,29 @@
     /* PASTE THE FULL CSS ABOVE HERE — DO NOT MODIFY */
   </style>
 </head>
+
 <body>
 
   <!-- HEADER -->
   <div class="report-header">
     <div class="title-block">
-      <h1>{{EMAIL_SUBJECT}}</h1>
-      <p>{{REPORT_TITLE}}</p>
+      <div class="header-meta-grid">
+        <span class="header-meta-label">Company</span>
+        <span class="header-meta-value">{{COMPANY}}</span>
+        <span class="header-meta-label">Project</span>
+        <span class="header-meta-value">{{REPORT_TITLE}}</span>
+        <span class="header-meta-label">Date</span>
+        <span class="header-meta-value">{{REPORT_DATE}}</span>
+        <span class="header-meta-label">Author</span>
+        <span class="header-meta-value">{{AUTHOR}}</span>
+      </div>
+      <p class="report-subtitle">{{EMAIL_SUBJECT}}</p>
     </div>
   </div>
 
   <div class="report-body">
 
-    <!-- SECTION 1: TASK LIST -->
-    <div class="section" id="task-list">
-      <div class="section-title">Task Progress</div>
-      <div class="section-body">
-        {{TASK_PROGRESS}}
-      </div>
-    </div>
-
-    <!-- SECTION 2: SUMMARY -->
+    <!-- SECTION 1: DAILY SUMMARY -->
     <div class="section" id="summary">
       <div class="section-title">Daily Summary</div>
       <div class="section-body">
@@ -36,31 +39,43 @@
       </div>
     </div>
 
+    <!-- SECTION 2: TASK LIST -->
+    <div class="section" id="task-list">
+      <div class="section-title">Task Progress</div>
+      <div class="section-body">
+        {{TASK_PROGRESS}}
+      </div>
+    </div>
+
     <!-- SECTION 3: HR TABLE -->
     <div class="section" id="hr-table">
       <div class="section-title">Human Resources</div>
-        <table class="hr-table">
-            <thead>
-            <tr>
-                <th style="border-left: 4px solid var(--highlight-color);">No.</th><th>Name</th><th>Role</th><th>Billable</th><th>Effort</th>
-            </tr>
-            </thead>
-            <tbody>
-              {{HR_ROWS}}
-            </tbody>
-        </table>
+      <table class="hr-table">
+        <thead>
+          <tr>
+            <th style="border-left: 4px solid var(--highlight-color);">No.</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Billable</th>
+            <th>Effort</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{HR_ROWS}}
+        </tbody>
+      </table>
     </div>
 
   </div><!-- /.report-body -->
 
   <!-- FOOTER -->
   <div class="report-footer">
-  <span>{{COMPANY}}</span> - Prepared by <strong>{{AUTHOR}}</strong> - {{REPORT_DATE}}
+     <span>{{COMPANY}}</span> - Prepared by <strong>{{AUTHOR}}</strong> - {{REPORT_DATE}}
   <br/>
   <small>
   {{EMAIL_SUBJECT}}
-  </small>
-</div>
+  </small></div>
 
 </body>
+
 </html>

@@ -34,6 +34,7 @@
         align-items: center;
         gap: 20px;
         border-bottom: 4px solid var(--highlight-color);
+        text-align: left;
       }
       .report-header .title-block h1 {
         font-size: 22px;
@@ -44,6 +45,34 @@
         font-size: 14px;
         opacity: 0.75;
         letter-spacing: 0.5px;
+      }
+
+      /* ── Header meta grid ── */
+      .header-meta-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 16px;
+        row-gap: 6px;
+        width: 100%;
+      }
+      .header-meta-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 12.5px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+      }
+      .header-meta-value {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: left;
+      }
+      .report-subtitle {
+        margin-top: 12px;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        opacity: 0.85;
       }
 
       /* ── Layout wrapper ── */
