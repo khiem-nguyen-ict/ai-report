@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+require("./env-loader").loadEnv();
 
 /**
  * Calculates Shannon entropy for a string.

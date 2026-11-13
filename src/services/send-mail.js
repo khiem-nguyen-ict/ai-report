@@ -6,7 +6,8 @@
  */
 
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+require("../utils/env-loader").loadEnv();
+const { debugLog, debugWarn } = require("../utils/debug");
 
 const fs = require("fs");
 const readline = require("readline");
@@ -22,15 +23,6 @@ const CONFIG = {
   emailUser: process.env.EMAIL_USER || "",
   emailPass: process.env.EMAIL_PASS || "",
 };
-
-const TO_RECIPIENTS = process.env.TO_RECIPIENTS || "";
-if (TO_RECIPIENTS === "") {
-  console.error("❌ TO_RECIPIENTS not configured in .env");
-  console.error(
-    `   Example: "Thanh Ho Ngoc" <hnthanh@tma.com.vn>; "Nguyen Tran Hoan Anh" <thanguyen@tma.com.vn>`,
-  );
-  process.exit(1);
-}
 
 const CC_RECIPIENTS = process.env.CC_RECIPIENTS || "";
 
@@ -49,9 +41,9 @@ function loadHtmlBody(target) {
 //  CHECK IF LOGGED IN
 // ─────────────────────────────────────────────
 async function isLoggedIn(page) {
-  console.log("[DEBUG isLoggedIn] Checking login status...");
-  console.log("[DEBUG isLoggedIn] Current URL:", page.url());
-  console.log("[DEBUG isLoggedIn] Current title:", await page.title());
+  debugLog("[isLoggedIn] Checking login status...");
+  debugLog("[isLoggedIn] Current URL:", page.url());
+  debugLog("[isLoggedIn] Current title:", await page.title());
 
   try {
     // First check: are we on the login page?
@@ -62,20 +54,20 @@ async function isLoggedIn(page) {
         window.location.href.includes("/login")
       );
     });
-    console.log("[DEBUG isLoggedIn] On login page?", onLoginPage);
+    debugLog("[isLoggedIn] On login page?", onLoginPage);
 
     // Get all cookies for debugging
     const cookies = await page.context().cookies();
     const zimbraCookies = cookies.filter((c) =>
       c.domain.includes("tma.com.vn"),
     );
-    console.log(
-      "[DEBUG isLoggedIn] Zimbra cookies count:",
+    debugLog(
+      "[isLoggedIn] Zimbra cookies count:",
       zimbraCookies.length,
     );
     for (const c of zimbraCookies) {
-      console.log(
-        "[DEBUG isLoggedIn] Cookie:",
+      debugLog(
+        "[isLoggedIn] Cookie:",
         c.name,
         "expires:",
         c.expires ? new Date(c.expires * 1000).toISOString() : "session",
@@ -83,7 +75,7 @@ async function isLoggedIn(page) {
     }
 
     if (onLoginPage) {
-      console.log("[DEBUG isLoggedIn] Login page detected - returning false");
+      debugLog("[isLoggedIn] Login page detected - returning false");
       return false;
     }
 
@@ -99,13 +91,10 @@ async function isLoggedIn(page) {
       },
       { timeout: 6000, polling: 500 },
     );
-    console.log("[DEBUG isLoggedIn] App elements found - returning true");
+    debugLog("[isLoggedIn] App elements found - returning true");
     return true;
   } catch (e) {
-    console.log(
-      "[DEBUG isLoggedIn] Error/timeout - returning false:",
-      e.message,
-    );
+    debugWarn("[isLoggedIn] Error/timeout - returning false:", e.message);
     return false;
   }
 }
@@ -677,6 +666,17 @@ function fallbackPrompt(resolve) {
 }
 
 async function run(emailSubject, reportFile) {
+  // Validate TO_RECIPIENTS at runtime (not import time)
+  const toRecipients = process.env.TO_RECIPIENTS || "";
+  if (!toRecipients.trim()) {
+    console.error("❌ TO_RECIPIENTS not configured in .env");
+    console.error(
+      `   Example: "Thanh Ho Ngoc" <hnthanh@tma.com.vn>; "Nguyen Tran Hoan Anh" <thanguyen@tma.com.vn>`,
+    );
+    process.exit(1);
+  }
+  const ccRecipients = process.env.CC_RECIPIENTS || "";
+
   console.log("=== Zimbra Classic Sender (Playwright) ===\n");
 
   let htmlBody, resolvedFilePath;
@@ -732,15 +732,15 @@ async function run(emailSubject, reportFile) {
 
     // Start sending email
     console.log(
-      `\n📧 Starting to send to '${TO_RECIPIENTS}', and cc '${CC_RECIPIENTS}' ...\n`,
+      `\n📧 Starting to send to '${toRecipients}', and cc '${ccRecipients}' ...\n`,
     );
 
     try {
       await composeAndSend(
         page,
         browser,
-        TO_RECIPIENTS,
-        CC_RECIPIENTS,
+        toRecipients,
+        ccRecipients,
         emailSubject,
         resolvedFilePath,
       );

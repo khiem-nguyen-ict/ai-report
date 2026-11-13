@@ -5,12 +5,8 @@
  */
 const path = require("path");
 const axios = require("axios");
+require("../utils/env-loader").loadEnv();
 const { parseReportJson } = require("../templates/render-report");
-
-// Load .env (project root) if it has not been loaded already
-if (!process.env.COHERE_API_KEY) {
-  require("dotenv").config({ path: path.join(__dirname, "../../.env") });
-}
 
 const COHERE_API_URL = "https://api.cohere.com/v2/chat";
 const DEFAULT_MODEL = "command-a-03-2025";
