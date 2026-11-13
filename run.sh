@@ -98,7 +98,8 @@ fi
 
 # 🔥 Run Node script
 echo "Running Node script..."
-/usr/local/bin/node "${SCRIPT_DIR}/index.js" "${node_args[@]}"
+NODE_CMD="$(command -v node || echo 'node')"
+"$NODE_CMD" "${SCRIPT_DIR}/index.js" "${node_args[@]}"
 
 if [[ "$notify_only" == true ]]; then
     echo "Finished running Node script in notify-only mode."

@@ -1,6 +1,7 @@
 const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
+require("../utils/env-loader").loadEnv();
 const { parseReportJson } = require("../templates/render-report");
 
 const USER_DATA_DIR = "./user-data";

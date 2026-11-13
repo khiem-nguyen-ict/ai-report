@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+require("./env-loader").loadEnv();
 
 // Clean up stale browser lock files to avoid ProcessSingleton errors
 function cleanupStaleBrowserFiles(dir) {

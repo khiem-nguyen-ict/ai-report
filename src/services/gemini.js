@@ -3,6 +3,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 chromium.use(StealthPlugin());
 
 const path = require("path");
+require("../utils/env-loader").loadEnv();
 const { parseReportJson } = require("../templates/render-report");
 
 const USER_DATA_DIR = "./user-data";
@@ -27,6 +28,10 @@ async function closeBrowser() {
 
 // ── Browser / page management ─────────────────────────────────────────────
 async function getPage() {
+  // Clean up stale browser lock files before launching
+  const { cleanupStaleBrowserFiles } = require("../utils/index");
+  cleanupStaleBrowserFiles(USER_DATA_DIR);
+
   if (_page && !_page.isClosed()) return _page;
 
   _context = await chromium.launchPersistentContext(USER_DATA_DIR, {

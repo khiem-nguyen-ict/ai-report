@@ -1,5 +1,5 @@
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+require("../utils/env-loader").loadEnv();
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -21,6 +21,9 @@ function escapeRegex(s) {
 const messages = JSON.parse(process.env.REMINDER_MESSAGES || '[]');
 
 function randomMessage() {
+  if (!messages.length) {
+    throw new Error("❌ REMINDER_MESSAGES is empty or not configured in .env");
+  }
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
@@ -103,6 +106,10 @@ async function clickPersonalTenantMenuIfShown(page, waitMs = 25_000) {
 }
 
 async function openMSTeamWebBrowser() {
+  // Clean up stale browser lock files before launching
+  const { cleanupStaleBrowserFiles } = require("../utils/index");
+  cleanupStaleBrowserFiles(PROFILE_DIR);
+
   const slowMo = Number(process.env.PLAYWRIGHT_SLOWMO || "300");
   const context = await chromium.launchPersistentContext(PROFILE_DIR, {
     headless: false,
@@ -529,6 +536,11 @@ function filterMessagesByDate(messages, targetDayStart) {
  * Send reminder message to the group chat to remind the team with a random message.
  */
 async function sendReminder() {
+  if (!messages.length) {
+    console.error("❌ No reminder messages configured. Set REMINDER_MESSAGES in .env");
+    process.exit(1);
+  }
+
   const { context, page } = await openMSTeamWebBrowser();
 
   // --- Chat → open correct group by name ---
