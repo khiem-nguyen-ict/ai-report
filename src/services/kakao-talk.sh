@@ -47,8 +47,11 @@ fi
 # Define the report directory (relative to script location)
 REPORT_DIR="${SCRIPT_DIR}/../../app-data"
 
-# Find the latest HTML report file (order by date DESC in filename)
-LATEST_REPORT=$(ls -1 "$REPORT_DIR"/report_*.html 2>/dev/null | sort -r -t'_' -k2 | head -n1)
+# Find the latest HTML report file (order by modification time DESC).
+# Lexicographic filename sort is unsafe here: "report_TEST.html" would sort
+# after "report_2026-11-19.html" because 'T' > '2' in ASCII, so the test
+# file would be picked instead of the real daily report.
+LATEST_REPORT=$(ls -t "$REPORT_DIR"/report_*.html 2>/dev/null | head -n1)
 
 if [ -z "$LATEST_REPORT" ]; then
     echo "Error: no report found"

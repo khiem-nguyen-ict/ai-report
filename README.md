@@ -171,7 +171,7 @@ This enables manual review and continuous improvement of detection rules.
     SANITIZATION_ALLOWLIST=support@tmasolutions.com
     # Human Resources configuration
     HR_FIXED_PEOPLE=Name:Role:MaxEffort:Billable,Name:Role:MaxEffort:Billable
-    HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort,Name:Role:MaxEffort
+    HR_CONDITIONAL_PEOPLE=Name:Role:MaxEffort[:Billable],Name:Role:MaxEffort[:Billable]
     # Reminder messages (JSON array)
     REMINDER_MESSAGES=["Message 1","Message 2",...]
     # Cohere (only when AI_ENGINE=COHERE)
@@ -307,7 +307,7 @@ The application will:
 | `START_WEEK` | Starting week number | No |
 | `NUMBER_OF_WEEKS_PER_SPRINT` | Weeks per sprint | No |
 | `HR_FIXED_PEOPLE` | Fixed HR people, format: `Name:Role:MaxEffort:Billable` (comma-separated, Billable = Yes or No) | No |
-| `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort` (comma-separated) | No |
+| `HR_CONDITIONAL_PEOPLE` | Conditional HR people, format: `Name:Role:MaxEffort[:Billable]` (comma-separated, Billable = Yes or No, optional) | No |
 | `REMINDER_MESSAGES` | JSON array of random reminder messages for MS Teams notify mode | No |
 | `SANITIZATION_MODE` | Sanitization strictness: `strict`, `balanced`, `lenient`, or `audit` (default: `balanced`) | No |
 | `SENSITIVE_KEYWORDS` | Comma-separated project-sensitive keywords to redact | No |

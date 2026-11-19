@@ -100,7 +100,7 @@ Copy from `.env.sample`. Important variables:
 - **AI engine:** `AI_ENGINE=CLAUDE|GEMINI|COHERE`.
   - Cohere: `COHERE_API_KEY` (required), optional `COHERE_MODEL` (default `command-a-03-2025`).
 - **Email/Zimbra:** `ZIMBRA_URL`, `EMAIL_USER`, `EMAIL_PASS`, `TO_RECIPIENTS`, `CC_RECIPIENTS`.
-- **HR/prompt:** `HR_FIXED_PEOPLE` (`Name:Role:MaxEffort:Billable` entries), `HR_CONDITIONAL_PEOPLE` (`Name:Role:MaxEffort`).
+- **HR/prompt:** `HR_FIXED_PEOPLE` (`Name:Role:MaxEffort:Billable` entries), `HR_CONDITIONAL_PEOPLE` (`Name:Role:MaxEffort[:Billable]` entries, Billable optional).
 - **Sanitization:** `SANITIZATION_MODE` (`strict|balanced|lenient|audit`), `SENSITIVE_KEYWORDS`, `SANITIZATION_ALLOWLIST`.
 - **KakaoTalk:** `KAKAO_TALK_GROUP_NAME` (used by `kakao-talk.sh`).
 
