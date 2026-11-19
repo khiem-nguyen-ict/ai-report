@@ -5,7 +5,7 @@ const assert = require("node:assert");
 process.env.COMPANY = "Acme";
 process.env.FROM_NAME = "Test Author";
 process.env.HR_FIXED_PEOPLE = "Alice:Lead:90:Yes,Bob:Dev:50:No";
-process.env.HR_CONDITIONAL_PEOPLE = "Carol:Advisor:10";
+process.env.HR_CONDITIONAL_PEOPLE = "Carol:Advisor:10,David:Designer:20:Yes,Eve:QA:15:No";
 
 const { buildPrompt } = require("../templates/prompt-template");
 
@@ -44,7 +44,9 @@ test("buildPrompt renders fixed and conditional HR people from env", () => {
   const prompt = buildPrompt("2026/11/11", "log");
   assert.ok(prompt.includes("Alice — Lead, billable = true, Effort not more than 90%"));
   assert.ok(prompt.includes("Bob — Dev, billable = false, Effort not more than 50%"));
-  assert.ok(prompt.includes('If "Carol" exists, Role is always "Advisor"'));
+  assert.ok(prompt.includes('If "Carol" exists, Role is always "Advisor", billable = false, Effort not more than 10%'));
+  assert.ok(prompt.includes('If "David" exists, Role is always "Designer", billable = true, Effort not more than 20%'));
+  assert.ok(prompt.includes('If "Eve" exists, Role is always "QA", billable = false, Effort not more than 15%'));
 });
 
 test("buildPrompt does not expand `$` sequences from the chat log", () => {

@@ -19,14 +19,17 @@ const hrFixedPeople = (process.env.HR_FIXED_PEOPLE || "")
     return { name, role, maxEffort: effort, billable: isBillable };
   });
 
-// Format: Name:Role:MaxEffort (conditional people)
+// Format: Name:Role:MaxEffort[:Billable] (conditional people, Billable = Yes or No, optional)
 const hrConditionalPeople = (process.env.HR_CONDITIONAL_PEOPLE || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean)
   .map((entry) => {
-    const [name, role, maxEffort] = entry.split(":").map((s) => s.trim());
-    return { name, role, maxEffort: parseInt(maxEffort, 10) || 10 };
+    const parts = entry.split(":").map((s) => s.trim());
+    const [name, role, maxEffort, billable] = parts;
+    const effort = Math.max(1, Math.min(100, parseInt(maxEffort, 10) || 10));
+    const isBillable = billable === "Yes";
+    return { name, role, maxEffort: effort, billable: isBillable };
   });
 
 function buildStep4Text() {
@@ -38,7 +41,8 @@ function buildStep4Text() {
   }
   text += "- Conditional people (only appear if found in the log):\n";
   for (const p of hrConditionalPeople) {
-    text += `    • If "${p.name}" exists, Role is always "${p.role}" and Effort is not more than ${p.maxEffort}%\n`;
+    const billableLabel = p.billable ? "true" : "false";
+    text += `    • If "${p.name}" exists, Role is always "${p.role}", billable = ${billableLabel}, Effort not more than ${p.maxEffort}%\n`;
   }
   text += "- Flexible people (anyone found in the daily log but not listed above): include them. Assign a Role based on context (default: AI Developer). Effort is calculated from chat volume, proactiveness, and task complexity visible in the log. These people have billable = false.\n";
   text += "- Effort: calculated from chat volume, proactiveness, and task complexity visible in the log.\n";
