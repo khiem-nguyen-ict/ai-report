@@ -55,6 +55,9 @@
         row-gap: 6px;
         width: 100%;
       }
+      .header-meta-row {
+        display: contents;
+      }
       .header-meta-label {
         color: rgba(255, 255, 255, 0.8);
         font-size: 12.5px;
